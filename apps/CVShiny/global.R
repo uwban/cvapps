@@ -40,26 +40,22 @@ hcopen_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
 
 
 # Appending date to the table names in the PostgreSQL database
-table_name_cv_reports                  <- paste0("cv_reports_", data_date)
-table_name_cv_drug_product_ingredients <- paste0("cv_drug_product_ingredients_", data_date)
-table_name_cv_report_drug              <- paste0("cv_report_drug_indication_joined_", data_date)
-table_name_cv_reactions                <- paste0("cv_reactions_meddra_", data_date)
+cv_reports <- dbGetQuery(cvponl_pool, "SELECT * FROM current.reports")
+cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current.report_drugs_mv")
+cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current.drug_product_ingredients")
+cv_reactions <- dbGetQuery(cvponl_pool, "SELECT * FROM current.reactions")
 
-# Creating tbls for the data tables we care about
-# Again, not sure if this is the correct way to implement
-cv_reports                  <- tbl(hcopen_pool, table_name_cv_reports)
-cv_drug_product_ingredients <- tbl(hcopen_pool, table_name_cv_drug_product_ingredients)
-cv_report_drug              <- tbl(hcopen_pool, table_name_cv_report_drug)
-cv_reactions                <- tbl(hcopen_pool, table_name_cv_reactions)
 cv_substances               <- tbl(hcopen_pool, "cv_substances")
 
-cv_reports_temp <- tbl(hcopen_pool, table_name_cv_reports) %>%
-  select(REPORT_ID, SERIOUSNESS_ENG,DEATH)
+
+#TODO: why are we grabbing the tbl again??
+cv_reports_temp <- cv_reports %>%
+  select(report_id, SERIOUSNESS_ENG,DEATH)
 # cv_reports_temp$DEATH[cv_reports_temp$DEATH == 1] <- "Yes"
 # cv_reports_temp$DEATH[is.na(cv_reports_temp$DEATH)] <- "No"
 
-cv_report_drug %<>% left_join(cv_reports_temp, "REPORT_ID" = "REPORT_ID")
-cv_reactions %<>% left_join(cv_reports_temp, "REPORT_ID" = "REPORT_ID")
+cv_report_drug %<>% left_join(cv_reports_temp, "report_id" = "report_id")
+cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 
 #Fetch brand/drug names
 
