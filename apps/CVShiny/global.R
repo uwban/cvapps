@@ -35,24 +35,28 @@ hcopen_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       user     = "hcreader",
                       password = "canada1")
 
-# Not sure if this is the correct way to implement a database connection.
-# hcopen      <- src_pool(hcopen_pool)
+cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
+                      host     = "shiny.hc.local",
+                      dbname   = "cvponl",
+                      user     = "hcreader",
+                      password = "canada1")
 
 
-# Appending date to the table names in the PostgreSQL database
+# get tables from postgresql db. current is the schema used, use format: schema.tablename to access tables
 cv_reports <- dbGetQuery(cvponl_pool, "SELECT * FROM current.reports")
 cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current.report_drugs_mv")
 cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current.drug_product_ingredients")
 cv_reactions <- dbGetQuery(cvponl_pool, "SELECT * FROM current.reactions")
 
+#this table might never get used
 cv_substances               <- tbl(hcopen_pool, "cv_substances")
 
 
 #TODO: why are we grabbing the tbl again??
 cv_reports_temp <- cv_reports %>%
-  select(report_id, SERIOUSNESS_ENG,DEATH)
-# cv_reports_temp$DEATH[cv_reports_temp$DEATH == 1] <- "Yes"
-# cv_reports_temp$DEATH[is.na(cv_reports_temp$DEATH)] <- "No"
+  select(report_id, seriousness_eng,death)
+# cv_reports_temp$death[cv_reports_temp$death == 1] <- "Yes"
+# cv_reports_temp$death[is.na(cv_reports_temp$death)] <- "No"
 
 cv_report_drug %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
@@ -61,40 +65,42 @@ cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 
 
 topbrands <- cv_report_drug %>%
-  distinct(DRUGNAME) %>%
+  distinct(drugname) %>%
   as.data.frame() %>%
   `[[`(1) %>%
   sort() %>%
   `[`(-c(1,2)) # dropping +ARTHRI-PLUS\u0099 which is problematic
 
-topings_dpd <- cv_substances %>%
-  distinct(ing) %>%
-  as.data.frame() %>%
-  `[[`(1) %>%
-  sort()
+#this also seems like dead code
+#topings_dpd <- cv_substances %>%
+#  distinct(ing) %>%
+#  as.data.frame() %>%
+#  `[[`(1) %>%
+#  sort()
 
 topings_cv <- cv_drug_product_ingredients %>%
-  distinct(ACTIVE_INGREDIENT_NAME) %>%
+  distinct(active_ingredient_name) %>%
   as.data.frame() %>%
   `[[`(1) %>%
   sort()
 
-smq_choices <- cv_reactions %>%
-  distinct(SMQ) %>%
-  as.data.frame() %>%
-  filter(!is.na(SMQ)) %>%
-  `[[`(1) %>%
-  sort()
+#This might be dead code
+#smq_choices <- cv_reactions %>%
+#  distinct(SMQ) %>%
+#  as.data.frame() %>%
+#  filter(!is.na(SMQ)) %>%
+#  `[[`(1) %>%
+#  sort()
 
 pt_choices <- cv_reactions %>%
-  distinct(PT_NAME_ENG) %>% 
+  distinct(pt_name_eng) %>% 
   as.data.frame() %>%
   `[[`(1) %>%
   c(smq_choices) %>%
   sort()
 
 soc_choices <- cv_reactions %>%
-  distinct(SOC_NAME_ENG) %>%
+  distinct(soc_name_eng) %>%
   as.data.frame() %>%
   `[[`(1) %>%
   sort()
