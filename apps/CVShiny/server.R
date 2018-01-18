@@ -84,7 +84,7 @@ shinyServer(function(input, output, session) {
                  } else {
                    cv_reports_filtered_ids %<>% filter(AGE_Y >= current_search$age[1] & AGE_Y <= current_search$age[2])
                  }
-                 cv_reports_filtered_ids %<>% select(REPORT_ID)
+                 cv_reports_filtered_ids %<>% select(report_id)
                  
                  
                  cv_report_drug_filtered <- cv_report_drug
@@ -94,6 +94,7 @@ shinyServer(function(input, output, session) {
                    
                    incProgress(1/9, detail = 'Filtering by Brand')
                    
+                   #it seems impossible to  have ingredient2 as value anymore, this might be dead code.
                  } else if (current_search$name_type == "ingredient2" & !is.null(current_search$name) && current_search$name != "") {
                    related_drugs <- cv_substances %>% filter(ing == current_search$name)
                    cv_report_drug_filtered %<>% semi_join(related_drugs, by = "DRUGNAME")
@@ -134,8 +135,8 @@ shinyServer(function(input, output, session) {
                  
                  
                  selected_ids$ids <-  cv_reports_filtered_ids %>%
-                   semi_join(cv_report_drug_filtered, "REPORT_ID" = "REPORT_ID") %>%
-                   semi_join(cv_reactions_filtered, "REPORT_ID" = "REPORT_ID") %>% as.data.frame()
+                   semi_join(cv_report_drug_filtered, "report_id" = "report_id") %>%
+                   semi_join(cv_reactions_filtered, "report_id" = "report_id") %>% as.data.frame()
                  incProgress(1/9, detail = 'Checking for no reports...')
                  n_ids <- selected_ids$ids %>% nrow()
                  if (n_ids == 0) {
@@ -152,12 +153,12 @@ shinyServer(function(input, output, session) {
                  
                  # so then all data is polled upon search, not just when display corresponding plot
                  # subset_cv$report <- cv_reports %>%
-                 #   semi_join(selected_ids, by = "REPORT_ID")
+                 #   semi_join(selected_ids, by = "report_id")
                  # subset_cv$drug <- cv_report_drug %>%
-                 #   semi_join(selected_ids, by = "REPORT_ID") %>%
-                 #   left_join(cv_report_drug_indication, by = c("REPORT_DRUG_ID", "REPORT_ID", "DRUG_PRODUCT_ID", "DRUGNAME")) 
+                 #   semi_join(selected_ids, by = "report_id") %>%
+                 #   left_join(cv_report_drug_indication, by = c("REPORT_DRUG_ID", "report_id", "DRUG_PRODUCT_ID", "DRUGNAME")) 
                  # subset_cv$rxn <- cv_reactions %>%
-                 #   semi_join(selected_ids, by = "REPORT_ID") %>%
+                 #   semi_join(selected_ids, by = "report_id") %>%
                  #   left_join(meddra, by = c("PT_NAME_ENG" = "PT_Term", "MEDDRA_VERSION" = "Version"))
                  
                  
@@ -187,7 +188,7 @@ shinyServer(function(input, output, session) {
     
     if(input$search_dataset_type == "Report Data"){
       reports_tab_master <- mainDataSelection() %>% as.data.frame()
-      reports_tab_master$REPORT_ID <- strtrans(reports_tab_master$REPORT_ID)
+      reports_tab_master$report_id <- strtrans(reports_tab_master$report_id)
       reports_tab_master$REPORT_NO <- strtrans(reports_tab_master$REPORT_NO)
       reports_tab_master %<>% `[`(, input$column_select_report) %>% as.data.frame()
       colnames(reports_tab_master) <- input$column_select_report
@@ -195,7 +196,7 @@ shinyServer(function(input, output, session) {
     } 
     else if(input$search_dataset_type == "Drug Data"){
       reports_tab_master <- drugDataSelection() %>% as.data.frame()
-      reports_tab_master$REPORT_ID <- strtrans(reports_tab_master$REPORT_ID)
+      reports_tab_master$report_id <- strtrans(reports_tab_master$report_id)
       reports_tab_master$REPORT_NO <- strtrans(reports_tab_master$REPORT_NO)
       reports_tab_master %<>% `[`(, input$column_select_drug) %>% as.data.frame()
       colnames(reports_tab_master) <- input$column_select_drug
@@ -203,7 +204,7 @@ shinyServer(function(input, output, session) {
     } 
     else if(input$search_dataset_type == "Reaction Data"){
       reports_tab_master <- rxnDataSelection() %>% as.data.frame()
-      reports_tab_master$REPORT_ID <- strtrans(reports_tab_master$REPORT_ID)
+      reports_tab_master$report_id <- strtrans(reports_tab_master$report_id)
       reports_tab_master$REPORT_NO <- strtrans(reports_tab_master$REPORT_NO)
       reports_tab_master %<>% `[`(, input$column_select_reaction) %>% as.data.frame()
       colnames(reports_tab_master) <- input$column_select_reaction
@@ -249,7 +250,7 @@ shinyServer(function(input, output, session) {
     n_ids <- selected_ids$ids %>% nrow()
     if (nrow(selected_ids$ids) > 0)
     {
-      data <- semi_join(cv_reports, selected_ids$ids, by = "REPORT_ID", copy=T)
+      data <- semi_join(cv_reports, selected_ids$ids, by = "report_id", copy=T)
     }
     else
     {
@@ -267,7 +268,7 @@ shinyServer(function(input, output, session) {
     data <- mainDataSelection()
     
     nreports <- data %>%
-      distinct(REPORT_ID) %>%
+      distinct(report_id) %>%
       tally() %>%
       as.data.frame()
     drug_name <- paste0(current_search$name, collapse = ", ")
@@ -287,7 +288,7 @@ shinyServer(function(input, output, session) {
     # cv_drug_product_ingredients <- tbl(pool_src, paste0('cv_drug_product_ingredients_', time_period))
     # cv_reactions <- tbl(pool_src, paste0('cv_reactions_', time_period))
     # search_function(mychart_pool, current_search)
-    # data <- semi_join(cv_reports, selected_ids, by = "REPORT_ID")
+    # data <- semi_join(cv_reports, selected_ids, by = "report_id")
     data <- mainDataSelection()
     
     
@@ -589,8 +590,8 @@ shinyServer(function(input, output, session) {
     n_ids <- selected_ids$ids %>% nrow()
     if (nrow(selected_ids$ids) > 0)
     {
-      data <- semi_join(cv_report_drug, selected_ids$ids, by = "REPORT_ID", copy = T)
-      #%>%       left_join(cv_report_drug_indication, by = c("REPORT_DRUG_ID", "REPORT_ID", "DRUG_PRODUCT_ID", "DRUGNAME"))
+      data <- semi_join(cv_report_drug, selected_ids$ids, by = "report_id", copy = T)
+      #%>%       left_join(cv_report_drug_indication, by = c("REPORT_DRUG_ID", "report_id", "DRUG_PRODUCT_ID", "DRUGNAME"))
     }
     else
     {
@@ -611,7 +612,7 @@ shinyServer(function(input, output, session) {
     
     
     # NOTE ABOUT INDICATIONS STRUCTURE:
-    # REPORT_ID -> multiple drugs per report
+    # report_id -> multiple drugs per report
     # DRUG_ID -> multiple reports may use the same drugs
     # REPORT_DRUG_ID -> unique for each drug/report combination. count is less than total reports since drugs can have multiple indications
     # so distinct REPORT_DRUG_ID x INDICATION_NAME_ENG includes the entire set of reports
@@ -659,7 +660,7 @@ shinyServer(function(input, output, session) {
   
   all_data <- reactive({
     data <- drugDataSelection() %>%
-      distinct(REPORT_ID, DRUGNAME) %>%
+      distinct(report_id, DRUGNAME) %>%
       count(DRUGNAME) %>%
       arrange(desc(n)) %>%
       head(25) %>%
@@ -689,7 +690,7 @@ shinyServer(function(input, output, session) {
   suspect_data <- reactive({
     data <- drugDataSelection() %>%
       filter(DRUGINVOLV_ENG == "Suspect") %>%
-      dplyr::distinct(REPORT_ID, DRUGNAME) %>%
+      dplyr::distinct(report_id, DRUGNAME) %>%
       count(DRUGNAME) %>%
       arrange(desc(n)) %>%
       head(25) %>%
@@ -703,7 +704,7 @@ shinyServer(function(input, output, session) {
   
   output$suspecteddrugchart <- renderGvis({
     # When generic, brand & reaction names are unspecified, count number of UNIQUE reports associated with each durg_name
-    #    (some REPORT_ID maybe duplicated due to multiple REPORT_DRUG_ID & DRUG_PRODUCT_ID which means that patient has diff dosage/freq)
+    #    (some report_id maybe duplicated due to multiple REPORT_DRUG_ID & DRUG_PRODUCT_ID which means that patient has diff dosage/freq)
     # the top drugs reported here might be influenced by such drug is originally most reported among all reports
     gvisBarChart_HCSC(suspect_data(), "DRUGNAME", "n", google_colors[3])
   })
@@ -716,7 +717,7 @@ shinyServer(function(input, output, session) {
   concomitant_data <- reactive({
     data <- drugDataSelection() %>%
       filter(DRUGINVOLV_ENG == "Concomitant") %>%
-      distinct(REPORT_ID, DRUGNAME) %>%
+      distinct(report_id, DRUGNAME) %>%
       count(DRUGNAME) %>%
       arrange(desc(n)) %>%
       head(25) %>%
@@ -730,7 +731,7 @@ shinyServer(function(input, output, session) {
   
   output$concomitantdrugchart <- renderGvis({
     # When generic, brand & reaction names are unspecified, count number of UNIQUE reports associated with each durg_name
-    #    (some REPORT_ID maybe duplicated due to multiple REPORT_DRUG_ID & DRUG_PRODUCT_ID which means that patient has diff dosage/freq)
+    #    (some report_id maybe duplicated due to multiple REPORT_DRUG_ID & DRUG_PRODUCT_ID which means that patient has diff dosage/freq)
     # the top drugs reported here might be influenced by such drug is originally most reported among all reports
     gvisBarChart_HCSC(concomitant_data(), "DRUGNAME", "n", google_colors[4])
   })
@@ -742,7 +743,7 @@ shinyServer(function(input, output, session) {
   
   output$drugcounttitle <- renderUI({
     excluded_count <- drugDataSelection() %>%
-      count(REPORT_ID) %>%
+      count(report_id) %>%
       filter(n > 20) %>%
       count() %>% as.data.frame() %>% `$`('nn')
     HTML(paste0("<h3>Number of Drugs per Report ",
@@ -756,7 +757,7 @@ shinyServer(function(input, output, session) {
   
   drugcount_data <- reactive({
     data <- drugDataSelection() %>%
-      count(REPORT_ID) %>%
+      count(report_id) %>%
       filter(n <= 20) %>%
       group_by(n) %>%
       count() %>%
@@ -785,7 +786,7 @@ shinyServer(function(input, output, session) {
     n_ids <- selected_ids$ids %>% nrow()
     if (nrow(selected_ids$ids) > 0)
     {
-      data <- cv_reactions %>% semi_join(selected_ids$ids, by = "REPORT_ID", copy = T) 
+      data <- cv_reactions %>% semi_join(selected_ids$ids, by = "report_id", copy = T) 
     }
     else
     {
