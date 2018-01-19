@@ -44,7 +44,7 @@ cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
 
 # get tables from postgresql db. current is the schema used, use format: schema.tablename to access tables
 cv_reports <- dbGetQuery(cvponl_pool, "SELECT * FROM current.reports")
-cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current.report_drugs_mv")
+cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current.report_drug")
 cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current.drug_product_ingredients")
 cv_reactions <- dbGetQuery(cvponl_pool, "SELECT * FROM current.reactions")
 
@@ -54,7 +54,7 @@ cv_substances               <- tbl(hcopen_pool, "cv_substances")
 
 #TODO: why are we grabbing the tbl again??
 cv_reports_temp <- cv_reports %>%
-  select(report_id, seriousness_eng,death)
+  select(report_id, seriousness_eng, death)
 # cv_reports_temp$death[cv_reports_temp$death == 1] <- "Yes"
 # cv_reports_temp$death[is.na(cv_reports_temp$death)] <- "No"
 

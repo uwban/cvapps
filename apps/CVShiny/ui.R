@@ -407,7 +407,7 @@ dashboardPage(
                                   "use disproportionality statistics.")),
  
                 barTableUI("Most Frequent Adverse Events (High-Level Terms)","tophltchart","tophlttable",
-                           "For more rigorous analysis, use disproportionality statistics.")),
+                 #          "For more rigorous analysis, use disproportionality statistics.")),
            
               fluidRow(
                 pieTableUI("Report Outcome", "outcomechart", "outcometable",

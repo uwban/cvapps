@@ -68,70 +68,70 @@ shinyServer(function(input, output, session) {
                  dateRange <- c(startDate, endDate)
                  
                  cv_reports_filtered_ids <- cv_reports %>%
-                   filter(DATINTRECEIVED_CLEAN >= dateRange[1], DATINTRECEIVED_CLEAN <= dateRange[2])
+                   filter(datintreceived >= dateRange[1], datintreceived <= dateRange[2])
                  incProgress(1/9, detail = 'Filtering Seriousness Type and Gender')
                  
-                 if (current_search$seriousness_type == "Death") {cv_reports_filtered_ids %<>% filter(DEATH == '1')}
-                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reports_filtered_ids %<>% filter(SERIOUSNESS_ENG == 'Yes') %<>% filter(is.null(DEATH) || DEATH == 2)}
+                 if (current_search$seriousness_type == "Death") {cv_reports_filtered_ids %<>% filter(death == '1')}
+                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reports_filtered_ids %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
                  
                  if (current_search$gender == 'Male' | current_search$gender == 'Female') {
-                   cv_reports_filtered_ids %<>% filter(GENDER_ENG == current_search$gender)
+                   cv_reports_filtered_ids %<>% filter(gender_eng == current_search$gender)
                  }
                  incProgress(1/9, detail = 'Applying Age Constraints')
                  
                  if (current_search$checkbox_filter & current_search$age[2] == 100) {
-                   cv_reports_filtered_ids %<>% filter(AGE_Y >= current_search$age[1])
+                   cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1])
                  } else {
-                   cv_reports_filtered_ids %<>% filter(AGE_Y >= current_search$age[1] & AGE_Y <= current_search$age[2])
+                   cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1] & age_y <= current_search$age[2])
                  }
                  cv_reports_filtered_ids %<>% select(report_id)
                  
                  
                  cv_report_drug_filtered <- cv_report_drug
                  if (current_search$name_type == "brand" & !is.null(current_search$name)) {
-                   if (length(current_search$name) == 1) cv_report_drug_filtered %<>% filter(DRUGNAME == current_search$name)
-                   else cv_report_drug_filtered %<>% filter(DRUGNAME %in% current_search$name)
+                   if (length(current_search$name) == 1) cv_report_drug_filtered %<>% filter(drugname == current_search$name)
+                   else cv_report_drug_filtered %<>% filter(drugname %in% current_search$name)
                    
                    incProgress(1/9, detail = 'Filtering by Brand')
                    
                    #it seems impossible to  have ingredient2 as value anymore, this might be dead code.
                  } else if (current_search$name_type == "ingredient2" & !is.null(current_search$name) && current_search$name != "") {
                    related_drugs <- cv_substances %>% filter(ing == current_search$name)
-                   cv_report_drug_filtered %<>% semi_join(related_drugs, by = "DRUGNAME")
+                   cv_report_drug_filtered %<>% semi_join(related_drugs, by = "drugname")
                    
                  } else if (current_search$name_type == "ingredient" & !is.null(current_search$name)) {
-                   if (length(current_search$name) == 1) related_drugs <- cv_drug_product_ingredients %>% filter(ACTIVE_INGREDIENT_NAME == current_search$name)
-                   else related_drugs <- cv_drug_product_ingredients %>% filter(ACTIVE_INGREDIENT_NAME %in% current_search$name)
-                   cv_report_drug_filtered %<>% semi_join(related_drugs, by = "DRUG_PRODUCT_ID")
+                   if (length(current_search$name) == 1) related_drugs <- cv_drug_product_ingredients %>% filter(active_ingredient_name == current_search$name)
+                   else related_drugs <- cv_drug_product_ingredients %>% filter(active_ingredient_name %in% current_search$name)
+                   cv_report_drug_filtered %<>% semi_join(related_drugs, by = "drug_product_id")
                    
                    incProgress(1/9, detail = 'Filtering by Ingredient')
                    
                  }
-                 if (current_search$drug_inv != "Any") cv_report_drug_filtered %<>% filter(DRUGINVOLV_ENG == current_search$drug_inv)
-                 if (current_search$seriousness_type == "Death") {cv_report_drug_filtered %<>% filter(DEATH == '1')}
-                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_report_drug_filtered %<>% filter(SERIOUSNESS_ENG == 'Yes') %<>% filter(is.null(DEATH) || DEATH == 2)}
+                 if (current_search$drug_inv != "Any") cv_report_drug_filtered %<>% filter(druginvolv_eng == current_search$drug_inv)
+                 if (current_search$seriousness_type == "Death") {cv_report_drug_filtered %<>% filter(death == '1')}
+                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_report_drug_filtered %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
                  
                  incProgress(2/9, detail = 'Filtering Reactions')
                  
                  
-                 cv_reactions_filtered <- cv_reactions %>% filter(PT_NAME_ENG != "")
+                 cv_reactions_filtered <- cv_reactions %>% filter(pt_name_eng != "")
                  if (!is.null(current_search$rxn)) {
                    if (length(current_search$rxn) == 1) {
-                     cv_reactions_filtered %<>% filter(PT_NAME_ENG == current_search$rxn | SMQ == current_search$rxn) %>% distinct()
+                     cv_reactions_filtered %<>% filter(pt_name_eng == current_search$rxn | SMQ == current_search$rxn) %>% distinct()
                    } else {
-                     cv_reactions_filtered %<>% filter(PT_NAME_ENG %in% current_search$rxn | SMQ %in% current_search$rxn) %>% distinct()
+                     cv_reactions_filtered %<>% filter(pt_name_eng %in% current_search$rxn | SMQ %in% current_search$rxn) %>% distinct()
                    }
                  }
                  if (!is.null(current_search$soc)) {
-                   if (length(current_search$soc) == 1) cv_reactions_filtered %<>% filter(SOC_NAME_ENG == current_search$soc)
-                   else cv_reactions_filtered %<>% filter(SOC_NAME_ENG %in% current_search$soc)
+                   if (length(current_search$soc) == 1) cv_reactions_filtered %<>% filter(soc_name_eng == current_search$soc)
+                   else cv_reactions_filtered %<>% filter(soc_name_eng %in% current_search$soc)
                  }
                  
                  # cv_reports_filtered_ids %<>% as.data.frame()
                  # cv_report_drug_filtered %<>% as.data.frame()
                  # cv_reactions_filtered %<>% as.data.frame()
-                 if (current_search$seriousness_type == "Death") {cv_reactions_filtered %<>% filter(DEATH == '1')}
-                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reactions_filtered %<>% filter(SERIOUSNESS_ENG == 'Yes') %<>% filter(is.null(DEATH) || DEATH == 2)}
+                 if (current_search$seriousness_type == "Death") {cv_reactions_filtered %<>% filter(death == '1')}
+                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reactions_filtered %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
                  
                  
                  selected_ids$ids <-  cv_reports_filtered_ids %>%
@@ -156,10 +156,10 @@ shinyServer(function(input, output, session) {
                  #   semi_join(selected_ids, by = "report_id")
                  # subset_cv$drug <- cv_report_drug %>%
                  #   semi_join(selected_ids, by = "report_id") %>%
-                 #   left_join(cv_report_drug_indication, by = c("REPORT_DRUG_ID", "report_id", "DRUG_PRODUCT_ID", "DRUGNAME")) 
+                 #   left_join(cv_report_drug_indication, by = c("REPORT_DRUG_ID", "report_id", "drug_product_id", "drugname")) 
                  # subset_cv$rxn <- cv_reactions %>%
                  #   semi_join(selected_ids, by = "report_id") %>%
-                 #   left_join(meddra, by = c("PT_NAME_ENG" = "PT_Term", "MEDDRA_VERSION" = "Version"))
+                 #   left_join(meddra, by = c("pt_name_eng" = "PT_Term", "MEDDRA_VERSION" = "Version"))
                  
                  
                  
@@ -189,7 +189,7 @@ shinyServer(function(input, output, session) {
     if(input$search_dataset_type == "Report Data"){
       reports_tab_master <- mainDataSelection() %>% as.data.frame()
       reports_tab_master$report_id <- strtrans(reports_tab_master$report_id)
-      reports_tab_master$REPORT_NO <- strtrans(reports_tab_master$REPORT_NO)
+      reports_tab_master$report_no <- strtrans(reports_tab_master$report_no)
       reports_tab_master %<>% `[`(, input$column_select_report) %>% as.data.frame()
       colnames(reports_tab_master) <- input$column_select_report
       data_type <- "report"
@@ -197,7 +197,7 @@ shinyServer(function(input, output, session) {
     else if(input$search_dataset_type == "Drug Data"){
       reports_tab_master <- drugDataSelection() %>% as.data.frame()
       reports_tab_master$report_id <- strtrans(reports_tab_master$report_id)
-      reports_tab_master$REPORT_NO <- strtrans(reports_tab_master$REPORT_NO)
+      reports_tab_master$report_no <- strtrans(reports_tab_master$report_no)
       reports_tab_master %<>% `[`(, input$column_select_drug) %>% as.data.frame()
       colnames(reports_tab_master) <- input$column_select_drug
       data_type <- "drug"
@@ -205,7 +205,7 @@ shinyServer(function(input, output, session) {
     else if(input$search_dataset_type == "Reaction Data"){
       reports_tab_master <- rxnDataSelection() %>% as.data.frame()
       reports_tab_master$report_id <- strtrans(reports_tab_master$report_id)
-      reports_tab_master$REPORT_NO <- strtrans(reports_tab_master$REPORT_NO)
+      reports_tab_master$report_no <- strtrans(reports_tab_master$report_no)
       reports_tab_master %<>% `[`(, input$column_select_reaction) %>% as.data.frame()
       colnames(reports_tab_master) <- input$column_select_reaction
       data_type <- "rxn"
@@ -293,8 +293,8 @@ shinyServer(function(input, output, session) {
     
     
     
-    dates <- data %>% select(DATINTRECEIVED_CLEAN) %>% summarize(date_min = min(DATINTRECEIVED_CLEAN),
-                                                                 date_max = max(DATINTRECEIVED_CLEAN)) %>%
+    dates <- data %>% select(datintreceived) %>% summarize(date_min = min(datintreceived),
+                                                                 date_max = max(datintreceived)) %>%
       as.data.frame()
     
     two_years <- 730
@@ -307,8 +307,8 @@ shinyServer(function(input, output, session) {
       time_function <- function(x) {months(x)}
     }
     
-    data_r <- data %>% select(c(DATINTRECEIVED_CLEAN, SERIOUSNESS_ENG, DEATH)) %>%
-      dplyr::mutate(time_p = date_trunc(time_period, DATINTRECEIVED_CLEAN))
+    data_r <- data %>% select(c(datintreceived, seriousness_eng, death)) %>%
+      dplyr::mutate(time_p = date_trunc(time_period, datintreceived))
     
     
     total_results <- data_r %>%
@@ -316,21 +316,21 @@ shinyServer(function(input, output, session) {
       summarize(total = n())
     
     nonserious_results <- data_r %>%
-      filter(SERIOUSNESS_ENG == "No") %>%
+      filter(seriousness_eng == "No") %>%
       group_by(time_p) %>%
       summarize(Nonserious = n())
     
     
     serious_results <- data_r %>%
-      filter(SERIOUSNESS_ENG == "Yes") %>%
-      filter(is.null(DEATH) || DEATH == 2) %>%
+      filter(seriousness_eng == "Yes") %>%
+      filter(is.null(death) || death == 2) %>%
       group_by(time_p) %>%
       summarize("Serious(Excluding Death)" = n())
     
     
     
     death_results <- data_r %>%
-      filter(DEATH == 1) %>%
+      filter(death == 1) %>%
       group_by(time_p) %>%
       summarize(Death = n())
     
@@ -354,18 +354,18 @@ shinyServer(function(input, output, session) {
   ### Reporterplot ###
   reportertable <- reactive({
     df <- mainDataSelection() %>%
-      count(REPORTER_TYPE_ENG) %>%
+      count(reporter_type_eng) %>%
       as.data.frame()
     
-    df$REPORTER_TYPE_ENG[df$REPORTER_TYPE_ENG == ""] <- "Not reported"
-    df$REPORTER_TYPE_ENG[df$REPORTER_TYPE_ENG == "Consumer Or Other Non Health Professional"] <- "Consumer or non-health professional"
-    df$REPORTER_TYPE_ENG[df$REPORTER_TYPE_ENG == "Other Health Professional"] <- "Other health professional"
+    df$reporter_type_eng[df$reporter_type_eng == ""] <- "Not reported"
+    df$reporter_type_eng[df$reporter_type_eng == "Consumer Or Other Non Health Professional"] <- "Consumer or non-health professional"
+    df$reporter_type_eng[df$reporter_type_eng == "Other Health Professional"] <- "Other health professional"
     
     return(df)
   })
   
   output$reporterchart <- renderGvis({
-    x = "REPORTER_TYPE_ENG"
+    x = "reporter_type_eng"
     y = "count"
     gvisPieChart_HCSC(as.data.frame(reportertable()),x,y)
   })
@@ -377,14 +377,14 @@ shinyServer(function(input, output, session) {
   ### seriousplot ###
   seriousplot_data <- reactive({
     ser_eng <- mainDataSelection() %>%
-      count(SERIOUSNESS_ENG) %>%
-      select(SERIOUSNESS_ENG,n) %>%
-      mutate(label = "SERIOUSNESS_ENG") %>%
+      count(seriousness_eng) %>%
+      select(seriousness_eng,n) %>%
+      mutate(label = "seriousness_eng") %>%
       as.data.frame()
     
     death_count <- mainDataSelection() %>%
-      count(DEATH) %>%
-      select(DEATH,n) %>%
+      count(death) %>%
+      select(death,n) %>%
       mutate(label = "Death") %>%
       as.data.frame()
     
@@ -393,8 +393,8 @@ shinyServer(function(input, output, session) {
     
     big_table <- rbind(ser_eng,death_count)
     big_table %<>% as.data.frame()
-    no_row <- big_table[big_table$label=="SERIOUSNESS_ENG" & big_table$content=="No",]
-    yes_row <- big_table[big_table$label=="SERIOUSNESS_ENG" & big_table$content=="Yes",]
+    no_row <- big_table[big_table$label=="seriousness_eng" & big_table$content=="No",]
+    yes_row <- big_table[big_table$label=="seriousness_eng" & big_table$content=="Yes",]
     one_row <- big_table[big_table$label=="Death" & big_table$content=='1',]
     missing_row <- big_table[big_table$content=="",]
     big_table <- rbind(no_row,yes_row,one_row,missing_row)
@@ -443,13 +443,13 @@ shinyServer(function(input, output, session) {
   ### seriousreasonplot ###
   output$seriousreasonsplot <- renderGvis({
     data <- mainDataSelection() %>%
-      filter(SERIOUSNESS_ENG == "Yes")
+      filter(seriousness_eng == "Yes")
     
     n_congen <- data %>%
       filter(CONGENITAL_ANOMALY == 1) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_death <- data %>%
-      filter(DEATH == 1) %>%
+      filter(death == 1) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_disab <- data %>%
       filter(DISABILITY == 1) %>%
@@ -465,7 +465,7 @@ shinyServer(function(input, output, session) {
       tally() %>% as.data.frame() %>% `$`(n)
     ## Check for NotSpecified ##
     n_notspec <- data %>%
-      filter(DEATH != 1 | is.na(DEATH)) %>%
+      filter(death != 1 | is.na(death)) %>%
       filter(DISABILITY != 1 | is.na(DISABILITY)) %>%
       filter(CONGENITAL_ANOMALY != 1 | is.na(CONGENITAL_ANOMALY)) %>%
       filter(LIFE_THREATENING != 1 | is.na(LIFE_THREATENING)) %>%
@@ -505,15 +505,15 @@ shinyServer(function(input, output, session) {
   ### Data about Patients
   sexplot_data <- reactive({
     data <- mainDataSelection() %>%
-      count(GENDER_ENG) %>%
+      count(gender_eng) %>%
       as.data.frame()
-    data$GENDER_ENG[data$GENDER_ENG == ""] <- "Not specified"
-    sex_results <- count(data, GENDER_ENG, wt = n)
+    data$gender_eng[data$gender_eng == ""] <- "Not specified"
+    sex_results <- count(data, gender_eng, wt = n)
     sex_results
   })
   
   output$sexchart <- renderGvis({
-    x = "GENDER_ENG"
+    x = "gender_eng"
     y = "n"
     gvisPieChart_HCSC(as.data.frame(sexplot_data()),x,y)
   })
@@ -554,7 +554,7 @@ shinyServer(function(input, output, session) {
   
   output$agehisttitle <- renderUI({
     excluded_count <- mainDataSelection() %>%
-      filter(AGE_GROUP_CLEAN != "Unknown", AGE_Y > 100) %>%
+      filter(AGE_GROUP_CLEAN != "Unknown", age_y > 100) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     HTML(paste0("<h3>Histogram of Patient Ages ",
                 tipify(
@@ -563,9 +563,9 @@ shinyServer(function(input, output, session) {
                 "<br>(", excluded_count, " reports with age greater than 100 excluded)", "</h3>"))
   })
   output$agehist <- renderPlotly({
-    age_groups <- mainDataSelection() %>% filter(AGE_GROUP_CLEAN != "Unknown", AGE_Y <= 100) %>%
-      arrange(AGE_Y) %>% 
-      select(c(AGE_Y, AGE_GROUP_CLEAN)) %>%
+    age_groups <- mainDataSelection() %>% filter(AGE_GROUP_CLEAN != "Unknown", age_y <= 100) %>%
+      arrange(age_y) %>% 
+      select(c(age_y, AGE_GROUP_CLEAN)) %>%
       as.data.frame()
     age_groups$AGE_GROUP_CLEAN %<>% factor(levels = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"))
     
@@ -576,7 +576,7 @@ shinyServer(function(input, output, session) {
       stringsAsFactors = FALSE) %>%
       semi_join(age_groups, by = "AGE_GROUP_CLEAN")
     
-    hist <- ggplot(age_groups, aes(x = AGE_Y, fill = AGE_GROUP_CLEAN)) +
+    hist <- ggplot(age_groups, aes(x = age_y, fill = AGE_GROUP_CLEAN)) +
       geom_histogram(breaks = seq(0, 100, by = 2)) +
       scale_fill_manual(values = colours_df$colours) +
       xlab("Age at onset (years)") +
@@ -591,7 +591,7 @@ shinyServer(function(input, output, session) {
     if (nrow(selected_ids$ids) > 0)
     {
       data <- semi_join(cv_report_drug, selected_ids$ids, by = "report_id", copy = T)
-      #%>%       left_join(cv_report_drug_indication, by = c("REPORT_DRUG_ID", "report_id", "DRUG_PRODUCT_ID", "DRUGNAME"))
+      #%>%       left_join(cv_report_drug_indication, by = c("REPORT_DRUG_ID", "report_id", "drug_product_id", "drugname"))
     }
     else
     {
@@ -615,22 +615,22 @@ shinyServer(function(input, output, session) {
     # report_id -> multiple drugs per report
     # DRUG_ID -> multiple reports may use the same drugs
     # REPORT_DRUG_ID -> unique for each drug/report combination. count is less than total reports since drugs can have multiple indications
-    # so distinct REPORT_DRUG_ID x INDICATION_NAME_ENG includes the entire set of reports
+    # so distinct REPORT_DRUG_ID x indication_name_eng includes the entire set of reports
     data <- drugDataSelection() %>%
-      count(INDICATION_NAME_ENG) %>%
+      count(indication_name_eng) %>%
       arrange(desc(n)) %>%
       as.data.frame() %>%
-      filter(!is.na(INDICATION_NAME_ENG)) %>%
+      filter(!is.na(indication_name_eng)) %>%
       head(25)
     if (nrow(data) == 0)
     {
-      data <- data.frame(INDICATION_NAME_ENG = "None", n = 0)
+      data <- data.frame(indication_name_eng = "None", n = 0)
     }
     data
   })
   
   output$indicationchart <- renderGvis({
-    x = "INDICATION_NAME_ENG"
+    x = "indication_name_eng"
     y = "n"
     gvisBarChart_HCSC(as.data.frame(indication_data()),x,y,color = google_colors[1])
   })
@@ -640,19 +640,19 @@ shinyServer(function(input, output, session) {
   })
 
   # output$indication_plot <- renderGvis({
-  #   gvisBarChart_HCSC(indication_data(), "INDICATION_NAME_ENG", "n", google_colors[1])
+  #   gvisBarChart_HCSC(indication_data(), "indication_name_eng", "n", google_colors[1])
   # })
   # output$indication_plot.table <- renderGvis({
   #   gvisTable(indication_data())
   # })
   # output$indication_plot.sus <- renderGvis({
-  #   gvisBarChart_HCSC(indication_data(), "INDICATION_NAME_ENG", "n", google_colors[1])
+  #   gvisBarChart_HCSC(indication_data(), "indication_name_eng", "n", google_colors[1])
   # })
   # output$indication_plot.table.sus <- renderGvis({
   #   gvisTable(indication_data())
   # })
   # output$indication_plot.con <- renderGvis({
-  #   gvisBarChart_HCSC(indication_data(), "INDICATION_NAME_ENG", "n", google_colors[1])
+  #   gvisBarChart_HCSC(indication_data(), "indication_name_eng", "n", google_colors[1])
   # })
   # output$indication_plot.table.con <- renderGvis({
   #   gvisTable(indication_data())
@@ -660,8 +660,8 @@ shinyServer(function(input, output, session) {
   
   all_data <- reactive({
     data <- drugDataSelection() %>%
-      distinct(report_id, DRUGNAME) %>%
-      count(DRUGNAME) %>%
+      distinct(report_id, drugname) %>%
+      count(drugname) %>%
       arrange(desc(n)) %>%
       head(25) %>%
       as.data.frame()
@@ -669,7 +669,7 @@ shinyServer(function(input, output, session) {
   })
   
   output$alldrugchart <- renderGvis({
-    x = "DRUGNAME"
+    x = "drugname"
     y = "n"
     gvisBarChart_HCSC(as.data.frame(all_data()),x,y,color = google_colors[2])
   })
@@ -682,31 +682,31 @@ shinyServer(function(input, output, session) {
   #   data <- all_data()
   #   
   #   switch(input$all_select,
-  #          "barchart" = gvisBarChart_HCSC(data, "DRUGNAME", "n", google_colors[2]),
+  #          "barchart" = gvisBarChart_HCSC(data, "drugname", "n", google_colors[2]),
   #          "table" = gvisTable(data))
   # })
   
   ### suspected drug ###
   suspect_data <- reactive({
     data <- drugDataSelection() %>%
-      filter(DRUGINVOLV_ENG == "Suspect") %>%
-      dplyr::distinct(report_id, DRUGNAME) %>%
-      count(DRUGNAME) %>%
+      filter(druginvolv_eng == "Suspect") %>%
+      dplyr::distinct(report_id, drugname) %>%
+      count(drugname) %>%
       arrange(desc(n)) %>%
       head(25) %>%
       as.data.frame()
     if (nrow(data) == 0)
     {
-      data <- data.frame(DRUGNAME = 'None', n = 0)
+      data <- data.frame(drugname = 'None', n = 0)
     }
     data
   })
   
   output$suspecteddrugchart <- renderGvis({
     # When generic, brand & reaction names are unspecified, count number of UNIQUE reports associated with each durg_name
-    #    (some report_id maybe duplicated due to multiple REPORT_DRUG_ID & DRUG_PRODUCT_ID which means that patient has diff dosage/freq)
+    #    (some report_id maybe duplicated due to multiple REPORT_DRUG_ID & drug_product_id which means that patient has diff dosage/freq)
     # the top drugs reported here might be influenced by such drug is originally most reported among all reports
-    gvisBarChart_HCSC(suspect_data(), "DRUGNAME", "n", google_colors[3])
+    gvisBarChart_HCSC(suspect_data(), "drugname", "n", google_colors[3])
   })
   
   output$suspecteddrugtable <- renderGvis({
@@ -716,24 +716,24 @@ shinyServer(function(input, output, session) {
   ### concomitant drug ###
   concomitant_data <- reactive({
     data <- drugDataSelection() %>%
-      filter(DRUGINVOLV_ENG == "Concomitant") %>%
-      distinct(report_id, DRUGNAME) %>%
-      count(DRUGNAME) %>%
+      filter(druginvolv_eng == "Concomitant") %>%
+      distinct(report_id, drugname) %>%
+      count(drugname) %>%
       arrange(desc(n)) %>%
       head(25) %>%
       as.data.frame()
     if (nrow(data) == 0)
     {
-      data <- data.frame(DRUGNAME = 'None', n = 0)
+      data <- data.frame(drugname = 'None', n = 0)
     }
     data
   })
   
   output$concomitantdrugchart <- renderGvis({
     # When generic, brand & reaction names are unspecified, count number of UNIQUE reports associated with each durg_name
-    #    (some report_id maybe duplicated due to multiple REPORT_DRUG_ID & DRUG_PRODUCT_ID which means that patient has diff dosage/freq)
+    #    (some report_id maybe duplicated due to multiple REPORT_DRUG_ID & drug_product_id which means that patient has diff dosage/freq)
     # the top drugs reported here might be influenced by such drug is originally most reported among all reports
-    gvisBarChart_HCSC(concomitant_data(), "DRUGNAME", "n", google_colors[4])
+    gvisBarChart_HCSC(concomitant_data(), "drugname", "n", google_colors[4])
   })
   
   output$concomitantdrugtable <- renderGvis({
@@ -802,7 +802,7 @@ shinyServer(function(input, output, session) {
   ### toppt ###
   top_pt_data <- reactive({
     data <- rxnDataSelection() %>%
-      count(PT_NAME_ENG) %>%
+      count(pt_name_eng) %>%
       arrange(desc(n)) %>%
       head(15) %>%
       as.data.frame()
@@ -810,7 +810,7 @@ shinyServer(function(input, output, session) {
   })
   
   output$topptchart <- renderGvis({
-    x = "PT_NAME_ENG"
+    x = "pt_name_eng"
     y = "n"
     gvisBarChart_HCSC(as.data.frame(top_pt_data()),x,y,color = google_colors[1])
   })
@@ -830,7 +830,7 @@ shinyServer(function(input, output, session) {
     data
   })
   
-  output$tophltchart <- renderGvis({
+output$tophltchart <- renderGvis({
     x = "HLT_Term"
     y = "n"
     gvisBarChart_HCSC(as.data.frame(top_hlt_data()),x,y,color = google_colors[2])
@@ -843,11 +843,11 @@ shinyServer(function(input, output, session) {
   ### outcome plot ###
   outcomeplot_data <- reactive({
     mainDataSelection() %>%
-      count(OUTCOME_ENG) %>%
+      count(outcome_eng) %>%
       as.data.frame()
   })
   output$outcomechart <- renderGvis({
-    x = "OUTCOME_ENG"
+    x = "outcome_eng"
     y = "n"
     gvisPieChart_HCSC(as.data.frame(outcomeplot_data()),x,y)
   })
