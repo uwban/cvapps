@@ -94,7 +94,6 @@ shinyServer(function(input, output, session) {
                    
                    incProgress(1/9, detail = 'Filtering by Brand')
                    
-                   #it seems impossible to  have ingredient2 as value anymore, this might be dead code.
                  } else if (current_search$name_type == "ingredient2" & !is.null(current_search$name) && current_search$name != "") {
                    related_drugs <- cv_substances %>% filter(ing == current_search$name)
                    cv_report_drug_filtered %<>% semi_join(related_drugs, by = "drugname")
@@ -117,9 +116,9 @@ shinyServer(function(input, output, session) {
                  cv_reactions_filtered <- cv_reactions %>% filter(pt_name_eng != "")
                  if (!is.null(current_search$rxn)) {
                    if (length(current_search$rxn) == 1) {
-                     cv_reactions_filtered %<>% filter(pt_name_eng == current_search$rxn | SMQ == current_search$rxn) %>% distinct()
+                     cv_reactions_filtered %<>% filter(pt_name_eng == current_search$rxn | smq_name == current_search$rxn) %>% distinct()
                    } else {
-                     cv_reactions_filtered %<>% filter(pt_name_eng %in% current_search$rxn | SMQ %in% current_search$rxn) %>% distinct()
+                     cv_reactions_filtered %<>% filter(pt_name_eng %in% current_search$rxn | smq_name %in% current_search$rxn) %>% distinct()
                    }
                  }
                  if (!is.null(current_search$soc)) {
@@ -308,7 +307,7 @@ shinyServer(function(input, output, session) {
     }
     
     data_r <- data %>% select(c(datintreceived, seriousness_eng, death)) %>%
-      dplyr::mutate(time_p = date_trunc(time_period, datintreceived))
+      dplyr::mutate(time_p = trunc(datintreceived, time_period))
     
     
     total_results <- data_r %>%
@@ -446,19 +445,19 @@ shinyServer(function(input, output, session) {
       filter(seriousness_eng == "Yes")
     
     n_congen <- data %>%
-      filter(CONGENITAL_ANOMALY == 1) %>%
+      filter(congenital_anomaly == 1) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_death <- data %>%
       filter(death == 1) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_disab <- data %>%
-      filter(DISABILITY == 1) %>%
+      filter(disability == 1) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_lifethreat <- data %>%
-      filter(LIFE_THREATENING == 1) %>%
+      filter(life_threatening == 1) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_hosp <- data %>%
-      filter(HOSP_REQUIRED == 1) %>%
+      filter(hosp_required == 1) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_other <- data %>%
       filter(OTHER_MEDICALLY_IMP_COND == 1) %>%
@@ -466,10 +465,10 @@ shinyServer(function(input, output, session) {
     ## Check for NotSpecified ##
     n_notspec <- data %>%
       filter(death != 1 | is.na(death)) %>%
-      filter(DISABILITY != 1 | is.na(DISABILITY)) %>%
-      filter(CONGENITAL_ANOMALY != 1 | is.na(CONGENITAL_ANOMALY)) %>%
-      filter(LIFE_THREATENING != 1 | is.na(LIFE_THREATENING)) %>%
-      filter(HOSP_REQUIRED != 1 | is.na(HOSP_REQUIRED)) %>%
+      filter(disability != 1 | is.na(disability)) %>%
+      filter(congenital_anomaly != 1 | is.na(congenital_anomaly)) %>%
+      filter(life_threatening != 1 | is.na(life_threatening)) %>%
+      filter(hosp_required != 1 | is.na(hosp_required)) %>%
       filter(OTHER_MEDICALLY_IMP_COND != 1 | is.na(OTHER_MEDICALLY_IMP_COND)) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     
@@ -526,9 +525,9 @@ shinyServer(function(input, output, session) {
   
   agegroup_data <-reactive({
     age_groups <- mainDataSelection() %>%
-      count(AGE_GROUP_CLEAN) %>%
+      count(age_group_eng) %>%
       as.data.frame()
-    age_group_order <- data.frame(AGE_GROUP_CLEAN = c("Neonate",
+    age_group_order <- data.frame(age_group_eng = c("Neonate",
                                                       "Infant",
                                                       "Child",
                                                       "Adolescent",
@@ -536,12 +535,12 @@ shinyServer(function(input, output, session) {
                                                       "Elderly",
                                                       "Unknown"),
                                   stringsAsFactors = FALSE)
-    data <- left_join(age_group_order, age_groups, by = "AGE_GROUP_CLEAN")
+    data <- left_join(age_group_order, age_groups, by = "age_group_eng")
     data[is.na(data)] <- 0 # always including empty rows means colour-scheme will be consistent
     data
   })
   output$agechart <- renderGvis({
-    x = "AGE_GROUP_CLEAN"
+    x = "age_group_eng"
     y = "n"
     gvisPieChart_HCSC(as.data.frame(agegroup_data()),x,y)
   })
@@ -554,7 +553,7 @@ shinyServer(function(input, output, session) {
   
   output$agehisttitle <- renderUI({
     excluded_count <- mainDataSelection() %>%
-      filter(AGE_GROUP_CLEAN != "Unknown", age_y > 100) %>%
+      filter(age_group_eng != "Unknown", age_y > 100) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     HTML(paste0("<h3>Histogram of Patient Ages ",
                 tipify(
@@ -563,20 +562,20 @@ shinyServer(function(input, output, session) {
                 "<br>(", excluded_count, " reports with age greater than 100 excluded)", "</h3>"))
   })
   output$agehist <- renderPlotly({
-    age_groups <- mainDataSelection() %>% filter(AGE_GROUP_CLEAN != "Unknown", age_y <= 100) %>%
+    age_groups <- mainDataSelection() %>% filter(age_group_eng != "Unknown", age_y <= 100) %>%
       arrange(age_y) %>% 
-      select(c(age_y, AGE_GROUP_CLEAN)) %>%
+      select(c(age_y, age_group_eng)) %>%
       as.data.frame()
-    age_groups$AGE_GROUP_CLEAN %<>% factor(levels = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"))
+    age_groups$age_group_eng %<>% factor(levels = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"))
     
     # joining by remaining terms so you can assign the right colours to the legend
     colours_df <- data.frame(
-      AGE_GROUP_CLEAN = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"),
+      age_group_eng = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"),
       colours = google_colors[1:6],
       stringsAsFactors = FALSE) %>%
-      semi_join(age_groups, by = "AGE_GROUP_CLEAN")
+      semi_join(age_groups, by = "age_group_eng")
     
-    hist <- ggplot(age_groups, aes(x = age_y, fill = AGE_GROUP_CLEAN)) +
+    hist <- ggplot(age_groups, aes(x = age_y, fill = age_group_eng)) +
       geom_histogram(breaks = seq(0, 100, by = 2)) +
       scale_fill_manual(values = colours_df$colours) +
       xlab("Age at onset (years)") +
@@ -822,16 +821,16 @@ shinyServer(function(input, output, session) {
   ### tophlt ###
   top_hlt_data <- reactive({
     data <- rxnDataSelection() %>%
-      filter(!is.na(HLT_Term)) %>%
-      count(HLT_Term) %>%
+      filter(!is.na(hlt_name)) %>%
+      count(hlt_name) %>%
       arrange(desc(n)) %>%
       head(15) %>%
       as.data.frame()
     data
   })
   
-output$tophltchart <- renderGvis({
-    x = "HLT_Term"
+  output$tophltchart <- renderGvis({
+    x = "hlt_name"
     y = "n"
     gvisBarChart_HCSC(as.data.frame(top_hlt_data()),x,y,color = google_colors[2])
   })
@@ -843,11 +842,11 @@ output$tophltchart <- renderGvis({
   ### outcome plot ###
   outcomeplot_data <- reactive({
     mainDataSelection() %>%
-      count(outcome_eng) %>%
+      count(OUTCOME_ENG) %>%
       as.data.frame()
   })
   output$outcomechart <- renderGvis({
-    x = "outcome_eng"
+    x = "OUTCOME_ENG"
     y = "n"
     gvisPieChart_HCSC(as.data.frame(outcomeplot_data()),x,y)
   })

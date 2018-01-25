@@ -1,7 +1,6 @@
 # data manip + utils
 
 library(magrittr)
-library(lubridate)
 library(dplyr)
 library(utils)
 library(zoo)
@@ -17,6 +16,7 @@ library(shiny)
 library(shinydashboard)
 library(shinyBS)
 library(DT)
+library(lubridate)
 
 source("common_ui.R")
 source("linechart.R")
@@ -38,15 +38,15 @@ hcopen_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
-                      user     = "hcreader",
-                      password = "canada1")
+                      user     = "hcwriter",
+                      password = "canada2")
 
 
 # get tables from postgresql db. current is the schema used, use format: schema.tablename to access tables
 cv_reports <- dbGetQuery(cvponl_pool, "SELECT * FROM current.reports")
 cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current.report_drug")
 cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current.drug_product_ingredients")
-cv_reactions <- dbGetQuery(cvponl_pool, "SELECT * FROM current.reactions")
+cv_reactions <- dbGetQuery(cvponl_pool, "SELECT * FROM current.meddra_hlt_soc_smq")
 
 #this table might never get used
 cv_substances               <- tbl(hcopen_pool, "cv_substances")
@@ -85,12 +85,12 @@ topings_cv <- cv_drug_product_ingredients %>%
   sort()
 
 #This might be dead code
-#smq_choices <- cv_reactions %>%
-#  distinct(SMQ) %>%
-#  as.data.frame() %>%
-#  filter(!is.na(SMQ)) %>%
-#  `[[`(1) %>%
-#  sort()
+smq_choices <- cv_reactions %>%
+  distinct(smq_name) %>%
+  as.data.frame() %>%
+  filter(!is.na(smq_name)) %>%
+  `[[`(1) %>%
+  sort()
 
 pt_choices <- cv_reactions %>%
   distinct(pt_name_eng) %>% 
