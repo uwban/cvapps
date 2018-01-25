@@ -292,46 +292,48 @@ shinyServer(function(input, output, session) {
     
     
     
-    dates <- data %>% select(datintreceived) %>% summarize(date_min = min(datintreceived),
-                                                                 date_max = max(datintreceived)) %>%
-      as.data.frame()
+    date_list <- data %>% 
+      select(datintreceived)
+    
+    dates <- data.frame(date_min = min(date_list$datintreceived), date_max = max(date_list$datintreceived))
+  
     
     two_years <- 730
     
     if ((dates$date_max - dates$date_min) >= two_years) {
-      time_period <- "year"
+      time_period <- "years"
       time_function <- function(x) {years(x)}
     } else {
-      time_period <- "month"
+      time_period <- "months"
       time_function <- function(x) {months(x)}
     }
     
     data_r <- data %>% select(c(datintreceived, seriousness_eng, death)) %>%
-      dplyr::mutate(time_p = trunc(datintreceived, time_period))
+      dplyr::mutate(time_p = as.Date(trunc.POSIXt(datintreceived, units = time_period)))
     
     
     total_results <- data_r %>%
       group_by(time_p) %>%
-      summarize(total = n())
+      dplyr::summarize(total = n())
     
     nonserious_results <- data_r %>%
       filter(seriousness_eng == "No") %>%
       group_by(time_p) %>%
-      summarize(Nonserious = n())
+      dplyr::summarize(Nonserious = n())
     
     
     serious_results <- data_r %>%
       filter(seriousness_eng == "Yes") %>%
-      filter(is.null(death) || death == 2) %>%
+      filter(is.na(death) || death == 2) %>%
       group_by(time_p) %>%
-      summarize("Serious(Excluding Death)" = n())
+      dplyr::summarize("Serious(Excluding Death)" = n())
     
     
     
     death_results <- data_r %>%
       filter(death == 1) %>%
       group_by(time_p) %>%
-      summarize(Death = n())
+      dplyr::summarize(Death = n())
     
     
     ntime_p <- interval(dates$date_min, dates$date_max) %/% time_function(1)
@@ -341,7 +343,7 @@ shinyServer(function(input, output, session) {
       full_join(nonserious_results, by = 'time_p') %>% as.data.frame() %>%
       mutate(time_p = ymd(time_p))
     
-    results <- data.frame(time_p = time_list) %>%
+    results <- data.frame(time_p = as.Date(time_list)) %>%
       left_join(results_to_be_mapped, by = 'time_p')
     
     results[is.na(results)] <- 0
@@ -460,7 +462,7 @@ shinyServer(function(input, output, session) {
       filter(hosp_required == 1) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_other <- data %>%
-      filter(OTHER_MEDICALLY_IMP_COND == 1) %>%
+      filter(other_medically_imp_cond == 1) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     ## Check for NotSpecified ##
     n_notspec <- data %>%
@@ -469,7 +471,7 @@ shinyServer(function(input, output, session) {
       filter(congenital_anomaly != 1 | is.na(congenital_anomaly)) %>%
       filter(life_threatening != 1 | is.na(life_threatening)) %>%
       filter(hosp_required != 1 | is.na(hosp_required)) %>%
-      filter(OTHER_MEDICALLY_IMP_COND != 1 | is.na(OTHER_MEDICALLY_IMP_COND)) %>%
+      filter(other_medically_imp_cond != 1 | is.na(other_medically_imp_cond)) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     
     serious_reasons <- data.frame(label = c("Death",
@@ -842,11 +844,11 @@ shinyServer(function(input, output, session) {
   ### outcome plot ###
   outcomeplot_data <- reactive({
     mainDataSelection() %>%
-      count(OUTCOME_ENG) %>%
+      count(outcome_eng) %>%
       as.data.frame()
   })
   output$outcomechart <- renderGvis({
-    x = "OUTCOME_ENG"
+    x = "outcome_eng"
     y = "n"
     gvisPieChart_HCSC(as.data.frame(outcomeplot_data()),x,y)
   })
