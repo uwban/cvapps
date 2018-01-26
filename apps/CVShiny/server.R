@@ -12,9 +12,7 @@ shinyServer(function(input, output, session) {
   updateSelectizeInput(session, 'search_rxn', choices = pt_choices, server = TRUE)
   updateSelectizeInput(session, 'search_soc', choices = soc_choices, server = TRUE)
   
-  # callModule(cvshiny_selectinput, 'search_soc', data = soc_choices)
-  # callModule(cvshiny_selectinput, 'search_brand', data = topbrands)
-  
+
   
   ##### Reactive data processing
   # Data structure to store current query info
@@ -150,24 +148,6 @@ shinyServer(function(input, output, session) {
                  
                  incProgress(1/9, detail = 'Fetching data...')
                  
-                 # so then all data is polled upon search, not just when display corresponding plot
-                 # subset_cv$report <- cv_reports %>%
-                 #   semi_join(selected_ids, by = "report_id")
-                 # subset_cv$drug <- cv_report_drug %>%
-                 #   semi_join(selected_ids, by = "report_id") %>%
-                 #   left_join(cv_report_drug_indication, by = c("REPORT_DRUG_ID", "report_id", "drug_product_id", "drugname")) 
-                 # subset_cv$rxn <- cv_reactions %>%
-                 #   semi_join(selected_ids, by = "report_id") %>%
-                 #   left_join(meddra, by = c("pt_name_eng" = "PT_Term", "MEDDRA_VERSION" = "Version"))
-                 
-                 
-                 
-                 
-                 
-                 
-                 
-                 
-                 
                  
                  incProgress(1/9)
                })
@@ -279,15 +259,7 @@ shinyServer(function(input, output, session) {
     h3(strong(plottitle))
   })
   output$mychart <- renderLineChart({
-    # adrplot_test <- reports_tab(current_generic="ampicillin",current_brand="PENBRITIN",current_rxn="Urticaria"))
-    # report_tab$main_chart
-    # mychart_pool <- src_pool(hcopen_pool)
-    # cv_reports <- tbl(pool_src, paste0('cv_reports_', time_period))
-    # cv_report_drug <- tbl(pool_src, paste0('cv_report_drug_', time_period))
-    # cv_drug_product_ingredients <- tbl(pool_src, paste0('cv_drug_product_ingredients_', time_period))
-    # cv_reactions <- tbl(pool_src, paste0('cv_reactions_', time_period))
-    # search_function(mychart_pool, current_search)
-    # data <- semi_join(cv_reports, selected_ids, by = "report_id")
+
     data <- mainDataSelection()
     
     
@@ -509,6 +481,7 @@ shinyServer(function(input, output, session) {
       count(gender_eng) %>%
       as.data.frame()
     data$gender_eng[data$gender_eng == ""] <- "Not specified"
+    data$gender_eng[is.na(data$gender_eng)] <- "Not specified"
     sex_results <- count(data, gender_eng, wt = n)
     sex_results
   })
@@ -521,6 +494,7 @@ shinyServer(function(input, output, session) {
   
   output$sextable    <- renderGvis({
     gvisTable(as.data.frame(sexplot_data()))
+    View(as.data.frame(sexplot_data()))
   })
   
   
@@ -640,24 +614,6 @@ shinyServer(function(input, output, session) {
     gvisTable(as.data.frame(indication_data()))
   })
 
-  # output$indication_plot <- renderGvis({
-  #   gvisBarChart_HCSC(indication_data(), "indication_name_eng", "n", google_colors[1])
-  # })
-  # output$indication_plot.table <- renderGvis({
-  #   gvisTable(indication_data())
-  # })
-  # output$indication_plot.sus <- renderGvis({
-  #   gvisBarChart_HCSC(indication_data(), "indication_name_eng", "n", google_colors[1])
-  # })
-  # output$indication_plot.table.sus <- renderGvis({
-  #   gvisTable(indication_data())
-  # })
-  # output$indication_plot.con <- renderGvis({
-  #   gvisBarChart_HCSC(indication_data(), "indication_name_eng", "n", google_colors[1])
-  # })
-  # output$indication_plot.table.con <- renderGvis({
-  #   gvisTable(indication_data())
-  # })
   
   all_data <- reactive({
     data <- drugDataSelection() %>%
@@ -679,14 +635,7 @@ shinyServer(function(input, output, session) {
     gvisTable(as.data.frame(all_data()))
   })
   
-  # output$drug_all <- renderUI({
-  #   data <- all_data()
-  #   
-  #   switch(input$all_select,
-  #          "barchart" = gvisBarChart_HCSC(data, "drugname", "n", google_colors[2]),
-  #          "table" = gvisTable(data))
-  # })
-  
+
   ### suspected drug ###
   suspect_data <- reactive({
     data <- drugDataSelection() %>%
