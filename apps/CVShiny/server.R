@@ -222,7 +222,7 @@ shinyServer(function(input, output, session) {
   },
   include.colnames = FALSE
   )
-  
+  #this is where data is streamed
   mainDataSelection <- reactive({
     # mychart_pool <- src_pool(hcopen_pool)
     # search_function(mychart_pool, current_search)
@@ -269,9 +269,8 @@ shinyServer(function(input, output, session) {
     
     dates <- data.frame(date_min = min(date_list$datintreceived), date_max = max(date_list$datintreceived))
   
-    
     two_years <- 730
-    
+    #check to see if histogram should be in years or months
     if ((dates$date_max - dates$date_min) >= two_years) {
       time_period <- "years"
       time_function <- function(x) {years(x)}
@@ -280,28 +279,31 @@ shinyServer(function(input, output, session) {
       time_function <- function(x) {months(x)}
     }
     
+    #truncate the date into the choice made above
     data_r <- data %>% select(c(datintreceived, seriousness_eng, death)) %>%
       dplyr::mutate(time_p = as.Date(trunc.POSIXt(datintreceived, units = time_period)))
     
     
+    #select the total results number counts grouped by time
     total_results <- data_r %>%
       group_by(time_p) %>%
       dplyr::summarize(total = n())
     
+    
+    #select all none serious results counts grouped by time
     nonserious_results <- data_r %>%
       filter(seriousness_eng == "No") %>%
       group_by(time_p) %>%
       dplyr::summarize(Nonserious = n())
     
-    
+    #select all serious excluding death results counts grouped by time
     serious_results <- data_r %>%
       filter(seriousness_eng == "Yes") %>%
-      filter(is.na(death) || death == 2) %>%
-      group_by(time_p) %>%
+      filter(is.na(death) | death == 2) %>%
+      group_by(time_p)  %>%
       dplyr::summarize("Serious(Excluding Death)" = n())
-    
-    
-    
+
+    #select all deaths counts grouped by time
     death_results <- data_r %>%
       filter(death == 1) %>%
       group_by(time_p) %>%
@@ -494,7 +496,6 @@ shinyServer(function(input, output, session) {
   
   output$sextable    <- renderGvis({
     gvisTable(as.data.frame(sexplot_data()))
-    View(as.data.frame(sexplot_data()))
   })
   
   
