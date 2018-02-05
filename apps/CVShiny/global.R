@@ -42,8 +42,8 @@ source("barTableUtil.R")
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
-                      user     = "hcreader",
-                      password = "canada1")
+                      user     = "hcwriter",
+                      password = "canada2")
 
 
 
@@ -51,10 +51,9 @@ cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
 #date_update <- cv_reports <- dbGetQuery(cvponl_pool, "SELECT * FROM current.schema_date")
 
 # get tables from postgresql db. current is the schema used, use format: schema.tablename to access tables
-cv_reports <- dbGetQuery(cvponl_pool, "SELECT * FROM current.reports")
-####REFRESH DATE CHECK###########
-max_date <- cv_reports %>% summarize(max_date = max(datintreceived)) %>%
-  `[[`(1)
+cv_reports <- dbGetQuery(cvponl_pool, "SELECT *FROM current.reports")
+
+
 
 
 cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current.report_drug")
@@ -75,7 +74,7 @@ cv_report_drug %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 
 
-#this currently doesn't get used
+#The following 
 topbrands <- cv_report_drug %>%
   distinct(drugname) %>%
   as.data.frame() %>%
