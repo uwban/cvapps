@@ -42,8 +42,8 @@ source("barTableUtil.R")
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
-                      user     = "hcwriter",
-                      password = "canada2")
+                      user     = "hcreader",
+                      password = "canada1")
 
 
 

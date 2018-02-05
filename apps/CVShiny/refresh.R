@@ -1,15 +1,16 @@
 library(data.table)
 library(magrittr)
+library(plyr)
 library(dplyr)
 library(pool)
-library(plyr)
+
 library(RPostgreSQL)
 library(feather)
 
 
 
-
-refresher <- function(max_date) {
+#could break this down into smaller functions, but it only has one use case
+refresh <- function() {
   cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                         host     = "shiny.hc.local",
                         dbname   = "cvponl",
@@ -18,52 +19,41 @@ refresher <- function(max_date) {
   
   cv_reports <- dbGetQuery(cvponl_pool, "SELECT * FROM current.reports")
   
-  max_date <- cv_reports %>% summarize(max_date = max(datintreceived)) %>%
+  max_date <- cv_reports %>%
+    summarize(max_date = max(datintreceived)) %>%
     `[[`(1) 
   
-  max_date <- gsub("-", "_", max_date)
-  schema_name <- paste0("refresh_", max_date)
+  schema_name <- paste0("refresh_",gsub("-", "_", max_date))
+  
   dbGetQuery(cvponl_pool, paste0("CREATE SCHEMA IF NOT EXISTS ", schema_name))
                        
   #get a list of all tables from remote schema to be copied
   remote_table_list <- dbGetQuery(cvponl_pool, "SELECT DISTINCT table_name 
     FROM information_schema.tables WHERE table_schema = 'remote'") %>%
     `[[`(1)
+
+  #applies each query
+  lapply(query_list, dbGetQuery, con=cvponl_pool)
   
-  #TODO: para
-  #iterate through the list of tables and create a materialized view for each
-  for (a_table in remote_table_list){
-    dbGetQuery(cvponl_pool, paste0("CREATE MATERIALIZED VIEW ", schema_name, ".", a_table, " AS SELECT * FROM remote.", a_table))
-  }
-  #TODO: create a date entry in the special tracking table
+  #create a schema for dates of refreshes to be stored if there isn't one already
+  dbGetQuery(cvponl_pool, "CREATE SCHEMA IF NOT EXISTS date_refresh")
+  
+  #create dataframe to insert into schema tracking table
+
+  history_table <- data.frame(ref_date=max_date,
+                   schema=schema_name,
+                   stringsAsFactors = FALSE)
+  
+  #TODO: getting date from here would be the fastest way to find out if the current schema is out of date
+  dbWriteTable(cvponl_pool, c("date_refresh", "history"), history_table, overwrite = FALSE, temporary = FALSE, row.names = FALSE)
   
 }
-dbGetQuery(cvponl_pool, "SELECT DISTINCT table_name 
-    FROM information_schema.tables WHERE table_schema = 'remote'")
+
+
+
 
 # get tables from postgresql db. current is the schema used, use format: schema.tablename to access tables
 cv_reports <- dbGetQuery(cvponl_pool, "SELECT * FROM current.reports")
-
-
-####REFRESH###########
-max_date <- cv_reports %>% summarize(max_date = max(datintreceived)) %>%
-  `[[`(1)
-
-max_date
-
-most_recent_refresh <- dbGetQuery(cvponl_pool, "SELECT * FROM current.schema_date") %>% 
-  summarize(date_ref = max(date_ref)) %>%
-  `[[`(1)
-
-if (max_date < most_recent_refresh){
-  dbGetQuery(cvponl_pool, "CREATE MATERIALIZED VIEW current.TEST (*) OF current.schema_date USING INDEX date_ref")
-}
-
-
-dbGetQuery(cvponl_pool, "CREATE MATERIALIZED VIEW tester.test AS SELECT * FROM current.schema_date")
-dbGetQuery(cvponl_pool, "CREATE INDEX tester ON current.test (date_ref)")
-
-
 
 #as per specifications in dist_file_format_20_1.pdf (tablename: filename), Select only columns necessary
 #meddra_hlt_pref_comp: hlt_pt.asc
@@ -102,8 +92,8 @@ final_table <- left_join(meddra_hlt_pref_term, meddra_hlt_pref_comp, by = "hlt_c
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
-                      user     = "hcwriter",
-                      password = "canada2")
+                      user     = "****",
+                      password = "****")
 
 
 #Getting cv_substances table: This table has the mapping from active ingredients to drugnames?
