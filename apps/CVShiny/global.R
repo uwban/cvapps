@@ -1,8 +1,6 @@
 # data manip + utils
-
+library(Hmisc)
 library(magrittr)
-library(lubridate)
-library(dplyr)
 library(utils)
 library(zoo)
 library(pool)
@@ -17,88 +15,87 @@ library(shiny)
 library(shinydashboard)
 library(shinyBS)
 library(DT)
+library(dplyr)
+library(lubridate)
 
 source("common_ui.R")
 source("linechart.R")
 source("pieTableUtil.R")
 source("barTableUtil.R")
+source("refresh.R")
 
-# ON NEW RELEASE, CHANGE THIS DATE --------------------------------------------
-data_date   <- "20160630"                                                    #|
+
+
+
 # -----------------------------------------------------------------------------
 
 ########## Codes to fetch top 1000 specific results to be used in dropdown menu ############### 
 # Temperary solution: fetch all tables to local and run functions on them
-hcopen_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
+
+
+
+
+#create a connection pool: insert relevant password and username
+cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
-                      dbname   = "hcopen",
-                      user     = "hcreader",
-                      password = "canada1")
-
-# Not sure if this is the correct way to implement a database connection.
-# hcopen      <- src_pool(hcopen_pool)
+                      dbname   = "cvponl",
+                      user     = "hcwriter",
+                      password = "canada2")
 
 
-# Appending date to the table names in the PostgreSQL database
-table_name_cv_reports                  <- paste0("cv_reports_", data_date)
-table_name_cv_drug_product_ingredients <- paste0("cv_drug_product_ingredients_", data_date)
-table_name_cv_report_drug              <- paste0("cv_report_drug_indication_joined_", data_date)
-table_name_cv_reactions                <- paste0("cv_reactions_meddra_", data_date)
-
-# Creating tbls for the data tables we care about
-# Again, not sure if this is the correct way to implement
-cv_reports                  <- tbl(hcopen_pool, table_name_cv_reports)
-cv_drug_product_ingredients <- tbl(hcopen_pool, table_name_cv_drug_product_ingredients)
-cv_report_drug              <- tbl(hcopen_pool, table_name_cv_report_drug)
-cv_reactions                <- tbl(hcopen_pool, table_name_cv_reactions)
-cv_substances               <- tbl(hcopen_pool, "cv_substances")
-
-cv_reports_temp <- tbl(hcopen_pool, table_name_cv_reports) %>%
-  select(REPORT_ID, SERIOUSNESS_ENG,DEATH)
-# cv_reports_temp$DEATH[cv_reports_temp$DEATH == 1] <- "Yes"
-# cv_reports_temp$DEATH[is.na(cv_reports_temp$DEATH)] <- "No"
-
-cv_report_drug %<>% left_join(cv_reports_temp, "REPORT_ID" = "REPORT_ID")
-cv_reactions %<>% left_join(cv_reports_temp, "REPORT_ID" = "REPORT_ID")
-
-#Fetch brand/drug names
 
 
+
+# get tables from postgresql db. current2 is the schema used, use format: schema.tablename to access tables
+cv_reports <- dbGetQuery(cvponl_pool, "SELECT *FROM current2.reports_table")
+cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.report_drug")
+cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.drug_product_ingredients")
+cv_reactions <- dbGetQuery(cvponl_pool, "SELECT * FROM meddra.v_20_1")
+
+#this table might never get used
+#cv_substances               <- tbl(hcopen_pool, "cv_substances")
+
+
+cv_reports_temp <- cv_reports %>%
+  select(report_id, seriousness_eng, death)
+
+
+cv_report_drug %<>% left_join(cv_reports_temp, "report_id" = "report_id")
+cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
+
+
+#following Queries are used to generate autocomplete lists
 topbrands <- cv_report_drug %>%
-  distinct(DRUGNAME) %>%
+  distinct(drugname) %>%
   as.data.frame() %>%
   `[[`(1) %>%
   sort() %>%
   `[`(-c(1,2)) # dropping +ARTHRI-PLUS\u0099 which is problematic
 
-topings_dpd <- cv_substances %>%
-  distinct(ing) %>%
-  as.data.frame() %>%
-  `[[`(1) %>%
-  sort()
 
 topings_cv <- cv_drug_product_ingredients %>%
-  distinct(ACTIVE_INGREDIENT_NAME) %>%
+  distinct(active_ingredient_name) %>%
   as.data.frame() %>%
   `[[`(1) %>%
   sort()
 
+
 smq_choices <- cv_reactions %>%
-  distinct(SMQ) %>%
+  distinct(smq_name) %>%
   as.data.frame() %>%
-  filter(!is.na(SMQ)) %>%
+  filter(!is.na(smq_name)) %>%
   `[[`(1) %>%
   sort()
 
 pt_choices <- cv_reactions %>%
-  distinct(PT_NAME_ENG) %>% 
+  distinct(pt_name_eng) %>% 
   as.data.frame() %>%
   `[[`(1) %>%
   c(smq_choices) %>%
   sort()
 
 soc_choices <- cv_reactions %>%
-  distinct(SOC_NAME_ENG) %>%
+  distinct(soc_name_eng) %>%
   as.data.frame() %>%
   `[[`(1) %>%
   sort()
