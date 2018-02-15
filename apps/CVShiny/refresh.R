@@ -11,8 +11,8 @@ library(RPostgreSQL)
 cvponl_write <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                        host     = "shiny.hc.local",
                        dbname   = "cvponl",
-                       user     = "******",
-                       password = "******")
+                       user     = "hcwriter",
+                       password = "canada2")
 
 #categorizes into age groups, can't use what is in the reports table as is because it has a lot of NULL values
 #INPUT: cv_reports: table 
@@ -96,16 +96,6 @@ meddra_make <- function(meddra_list, con){
   dbGetQuery(con, paste0("CREATE INDEX smq_name ON meddra.", meddra_list[4], " (smq_name)"))
   dbGetQuery(con, paste0("CREATE INDEX pt_name_eng ON meddra.", meddra_list[4], " (pt_name_eng)"))
   dbGetQuery(con, paste0("CREATE INDEX soc_name_eng ON meddra.", meddra_list[4], " (soc_name_eng)"))
-  
-  #originally I intended to uploade the tables individually and join them together, however joins are expensive so I joined them to the reaction table,
-  #probably doesn't take up that much extra space and this is the only usecase right now so it works, however in the future it might be
-  #valuable to use the all the tables (and include all their columns that I filtered out above)
-  #dbWriteTable(cvponl_write, c("current", "meddra_hlt_pref_comp"), value = meddra_hlt_pref_comp, append = TRUE, row.names = FALSE)
-  #dbWriteTable(cvponl_write, c("current", "meddra_hlt_pref_term"), value = meddra_hlt_pref_term, append = TRUE, row.names = FALSE)
-  #dbWriteTable(cvponl_write, c("current", "meddra_pref_term"), value = meddra_pref_term, append = TRUE, row.names = FALSE)
-  #dbWriteTable(cvponl_write, c("current", "meddra_smq_content"), value = meddra_smq_content, append = TRUE, row.names = FALSE)
-  #dbWriteTable(cvponl_write, c("current", "meddra_smq_list"), value = meddra_smq_list, append = TRUE, row.names = FALSE)
-  
 }
 
 #updates database table with the maximum date and current meddra version
@@ -199,17 +189,40 @@ refresh <- function() {
   reports <- dbGetQuery(cvponl_write, "SELECT * FROM remote.reports")
   updated_reports <-age_group_clean(reports)
   
+
+  
+  
   #add the age_group_clean column to the reports table, this is a work around and should be done upstream to save time, but for now this works
   #this means that there is an extra table called reports_table within the schema at the moment, ideally reports would just have an extra column
   dbWriteTable(cvponl_write, c(schema_name, "reports_table"), value = updated_reports, append = FALSE, row.names = FALSE)
+  
   
   
   if(most_recent_meddra > current_meddra) {
     
     meddra_make(meddra, cvponl_write)
   }
-  #this doesn't work properly!
-  return(schema_name)
+  
+  source("global.R")
+  
+  #create some useful indexes
+  dbGetQuery(cvponl_write, "CREATE INDEX report_table_report_id ON current2.reports_table  (report_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX report_table_reporter_type_eng ON current2.reports_table (reporter_type_eng)")
+  dbGetQuery(cvponl_write, "CREATE INDEX report_table_age_group_clean ON current2.reports_table  (age_group_clean)")
+  dbGetQuery(cvponl_write, "CREATE INDEX report_table_drugname ON current2.reports_table  (drugname)")
+  dbGetQuery(cvponl_write, "CREATE INDEX report_table_seriousness_code ON current2.reports_table  (seriousness_code)")
+  dbGetQuery(cvponl_write, "CREATE INDEX report_table_datintreceived ON current2.reports_table (datintreceived)")
+  
+  dbGetQuery(cvponl_write, "CREATE INDEX report_drug_report_id ON current2.report_drug  (report_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX report_drug_drugname ON current2.report_drug  (drugname)")
+  
+  dbGetQuery(cvponl_write, "CREATE INDEX drug_product_ingredients_active_ingredient_id ON current2.drug_product_ingredients  (active_ingredient_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX drug_product_ingredients_drugname ON current2.drug_product_ingredients  (drugname)")
+  
+
+  
+  
+  
   
 }
 

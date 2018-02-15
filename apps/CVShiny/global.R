@@ -39,8 +39,8 @@ source("refresh.R")
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
-                      user     = "*****",
-                      password = "******")
+                      user     = "hcwriter",
+                      password = "canada2")
 
 
 
@@ -48,7 +48,6 @@ cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
 
 # get tables from postgresql db. current2 is the schema used, use format: schema.tablename to access tables
 cv_reports <- dbGetQuery(cvponl_pool, "SELECT *FROM current2.reports_table")
-
 cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.report_drug")
 cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.drug_product_ingredients")
 cv_reactions <- dbGetQuery(cvponl_pool, "SELECT * FROM meddra.v_20_1")
