@@ -1,5 +1,6 @@
 library(plotly)
 library(stringr)
+
 shinyServer(function(input, output, session) {
   
   ### page loader setting ###
@@ -7,6 +8,9 @@ shinyServer(function(input, output, session) {
   hide(id="loading-content",anim=TRUE,animType="fade")
   show("main-content")
   
+  
+
+  #Autocomplete suggestions are generated
   updateSelectizeInput(session, 'search_brand', choices = topbrands, server = TRUE)
   updateSelectizeInput(session, 'search_ing', choices = topings_cv, server = TRUE)
   updateSelectizeInput(session, 'search_rxn', choices = pt_choices, server = TRUE)
@@ -27,6 +31,31 @@ shinyServer(function(input, output, session) {
   # We need to have a reactive structure here so that it activates upon loading
   reactiveSearchButton <- reactive(as.vector(input$searchButton))
   
+  #get time in milliseconds
+  #system time mod 24hr + 2hr
+  now_time <- Sys.time() 
+  
+  day_time <- now_time %>%
+    trunc("days") %>%
+    as.numeric
+  
+  
+  milli_time <-(((as.numeric(now_time) - day_time) %% 86400) + 7200) * 1000
+  
+  
+  autoInvalidate <- reactiveTimer(milli_time, session = NULL)
+  
+  observe({
+    # Invalidate and re-execute this reactive expression every time the
+    # timer fires.
+    autoInvalidate()
+    
+    #if the remote date is later we need to update the database that the app points to
+    if(dateCheck()){
+      refresh()
+    }
+  })
+
   
   
   
@@ -45,6 +74,7 @@ shinyServer(function(input, output, session) {
                  endDate <- input$daterange[2] %>% ymd(tz = 'EST')
                  dateRange <- c(startDate, endDate)
                  
+                 #search variables
                  current_search$name_type <- input$name_type
                  current_search$name <- name
                  current_search$drug_inv <- input$drug_inv
@@ -146,6 +176,7 @@ shinyServer(function(input, output, session) {
                    return()
                  }
                  
+                 #progress bar
                  incProgress(1/9, detail = 'Fetching data...')
                  
                  
@@ -332,7 +363,7 @@ shinyServer(function(input, output, session) {
       count(reporter_type_eng) %>%
       as.data.frame()
     
-    df$reporter_type_eng[df$reporter_type_eng == ""] <- "Not reported"
+    df$reporter_type_eng[is.na(df$reporter_type_eng)] <- "Not reported"
     df$reporter_type_eng[df$reporter_type_eng == "Consumer Or Other Non Health Professional"] <- "Consumer or non-health professional"
     df$reporter_type_eng[df$reporter_type_eng == "Other Health Professional"] <- "Other health professional"
     
@@ -499,12 +530,12 @@ shinyServer(function(input, output, session) {
   })
   
   
-  
+  #count age groups
   agegroup_data <-reactive({
     age_groups <- mainDataSelection() %>%
-      count(age_group_eng) %>%
+      count(age_group_clean) %>%
       as.data.frame()
-    age_group_order <- data.frame(age_group_eng = c("Neonate",
+    age_group_order <- data.frame(age_group_clean = c("Neonate",
                                                       "Infant",
                                                       "Child",
                                                       "Adolescent",
@@ -512,12 +543,12 @@ shinyServer(function(input, output, session) {
                                                       "Elderly",
                                                       "Unknown"),
                                   stringsAsFactors = FALSE)
-    data <- left_join(age_group_order, age_groups, by = "age_group_eng")
+    data <- left_join(age_group_order, age_groups, by = "age_group_clean")
     data[is.na(data)] <- 0 # always including empty rows means colour-scheme will be consistent
     data
   })
   output$agechart <- renderGvis({
-    x = "age_group_eng"
+    x = "age_group_clean"
     y = "n"
     gvisPieChart_HCSC(as.data.frame(agegroup_data()),x,y)
   })
@@ -530,7 +561,7 @@ shinyServer(function(input, output, session) {
   
   output$agehisttitle <- renderUI({
     excluded_count <- mainDataSelection() %>%
-      filter(age_group_eng != "Unknown", age_y > 100) %>%
+      filter(age_group_clean != "Unknown", age_y > 100) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     HTML(paste0("<h3>Histogram of Patient Ages ",
                 tipify(
@@ -539,20 +570,20 @@ shinyServer(function(input, output, session) {
                 "<br>(", excluded_count, " reports with age greater than 100 excluded)", "</h3>"))
   })
   output$agehist <- renderPlotly({
-    age_groups <- mainDataSelection() %>% filter(age_group_eng != "Unknown", age_y <= 100) %>%
+    age_groups <- mainDataSelection() %>% filter(age_group_clean != "Unknown", age_y <= 100) %>%
       arrange(age_y) %>% 
-      select(c(age_y, age_group_eng)) %>%
+      select(c(age_y, age_group_clean)) %>%
       as.data.frame()
-    age_groups$age_group_eng %<>% factor(levels = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"))
+    age_groups$age_group_clean %<>% factor(levels = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"))
     
     # joining by remaining terms so you can assign the right colours to the legend
     colours_df <- data.frame(
-      age_group_eng = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"),
+      age_group_clean = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"),
       colours = google_colors[1:6],
       stringsAsFactors = FALSE) %>%
-      semi_join(age_groups, by = "age_group_eng")
+      semi_join(age_groups, by = "age_group_clean")
     
-    hist <- ggplot(age_groups, aes(x = age_y, fill = age_group_eng)) +
+    hist <- ggplot(age_groups, aes(x = age_y, fill = age_group_clean)) +
       geom_histogram(breaks = seq(0, 100, by = 2)) +
       scale_fill_manual(values = colours_df$colours) +
       xlab("Age at onset (years)") +

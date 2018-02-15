@@ -16,6 +16,8 @@ Input to these scripts are a data source, the output is data tables being upload
 
 - [data_import/cv_import.R](data_import/cv_import.R) scrapes the CV extract landing page for the link to the extracts zip file, downloads it locally, and parses through the text files, constructs the `AGE_GROUP, DATRECEIVED_CLEAN, DATRECEIVED_CHAR, DATINTRECEIVED_CLEAN, DATINTRECEIVED_CHAR` columns, and uploads all the tables to the Postgres database with the date suffix
 
+- [cvapps/refresh.r](cvapps/refresh.r) automatically refreshes both database and meddra version and uploads them to the database if they are out of date. Meddra is updated by checking /home/shared/meddra/ for the largest version and comparing this to a history table in postgres. The tables in the current schema are updated by detecting dates that are out of range in the remote table and then recreating all existing tables.
+
 ## Fetching the data ([data_processing](data_processing))
 > Postgres DB -> Postgres DB
 

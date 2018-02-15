@@ -22,59 +22,50 @@ source("common_ui.R")
 source("linechart.R")
 source("pieTableUtil.R")
 source("barTableUtil.R")
+source("refresh.R")
 
 
 
-#################TODO: CREATE AN AUTOMATED UPDATER #####################
-# ON NEW RELEASE, CHANGE THIS DATE --------------------------------------------
-#current_date   <- Sys.Date()
 
 # -----------------------------------------------------------------------------
 
 ########## Codes to fetch top 1000 specific results to be used in dropdown menu ############### 
 # Temperary solution: fetch all tables to local and run functions on them
-#copen_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
-#                      host     = "shiny.hc.local",
-#                      dbname   = "hcopen",
-#                      user     = "hcreader",
-#                      password = "canada1")
 
+
+
+
+#create a connection pool: insert relevant password and username
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
-                      user     = "hcreader",
-                      password = "canada1")
+                      user     = "*****",
+                      password = "******")
 
 
 
 
-#date_update <- cv_reports <- dbGetQuery(cvponl_pool, "SELECT * FROM current.schema_date")
 
-# get tables from postgresql db. current is the schema used, use format: schema.tablename to access tables
-cv_reports <- dbGetQuery(cvponl_pool, "SELECT *FROM current.reports")
+# get tables from postgresql db. current2 is the schema used, use format: schema.tablename to access tables
+cv_reports <- dbGetQuery(cvponl_pool, "SELECT *FROM current2.reports_table")
 
-
-
-
-cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current.report_drug")
-cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current.drug_product_ingredients")
-cv_reactions <- dbGetQuery(cvponl_pool, "SELECT * FROM current.meddra_hlt_soc_smq")
+cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.report_drug")
+cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.drug_product_ingredients")
+cv_reactions <- dbGetQuery(cvponl_pool, "SELECT * FROM meddra.v_20_1")
 
 #this table might never get used
 #cv_substances               <- tbl(hcopen_pool, "cv_substances")
 
 
-#TODO: why are we grabbing the tbl again??
 cv_reports_temp <- cv_reports %>%
   select(report_id, seriousness_eng, death)
-# cv_reports_temp$death[cv_reports_temp$death == 1] <- "Yes"
-# cv_reports_temp$death[is.na(cv_reports_temp$death)] <- "No"
+
 
 cv_report_drug %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 
 
-#The following 
+#following Queries are used to generate autocomplete lists
 topbrands <- cv_report_drug %>%
   distinct(drugname) %>%
   as.data.frame() %>%
@@ -82,12 +73,6 @@ topbrands <- cv_report_drug %>%
   sort() %>%
   `[`(-c(1,2)) # dropping +ARTHRI-PLUS\u0099 which is problematic
 
-#this also seems like dead code
-#topings_dpd <- cv_substances %>%
-#  distinct(ing) %>%
-#  as.data.frame() %>%
-#  `[[`(1) %>%
-#  sort()
 
 topings_cv <- cv_drug_product_ingredients %>%
   distinct(active_ingredient_name) %>%
