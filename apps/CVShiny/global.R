@@ -1,4 +1,5 @@
 # data manip + utils
+library(dbplyr)
 library(Hmisc)
 library(magrittr)
 library(utils)
@@ -18,6 +19,7 @@ library(DT)
 library(dplyr)
 library(lubridate)
 
+
 source("common_ui.R")
 source("linechart.R")
 source("pieTableUtil.R")
@@ -31,7 +33,7 @@ source("refresh.R")
 
 ########## Codes to fetch top 1000 specific results to be used in dropdown menu ############### 
 # Temperary solution: fetch all tables to local and run functions on them
-
+timer <- time_elapsed(Sys.time())
 
 
 
@@ -39,26 +41,35 @@ source("refresh.R")
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
-                      user     = "hcwriter",
-                      password = "canada2")
+                      user     = "",
+                      password = "")
 
 
 
+#get max date and meddra within our current schema
+meddra_and_date <- dbGetQuery(cvponl_pool, "SELECT  MAX(ref_date) AS max_date, MAX(meddra_version) AS med_version FROM date_refresh.history") 
+  
+max_date <- meddra_and_date %>%
+  `[[`(1)
 
+max_meddra <- meddra_and_date %>%
+  `[[`(2) 
 
 # get tables from postgresql db. current2 is the schema used, use format: schema.tablename to access tables
-cv_reports <- dbGetQuery(cvponl_pool, "SELECT *FROM current2.reports_table")
-cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.report_drug")
-cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.drug_product_ingredients")
-cv_reactions <- dbGetQuery(cvponl_pool, "SELECT * FROM meddra.v_20_1")
+#cv_reports <- dbGetQuery(cvponl_pool, "SELECT *FROM current2.reports_table")
+#cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.report_drug")
+#cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.drug_product_ingredients")
+#cv_reactions <- dbGetQuery(cvponl_pool, paste0("SELECT * FROM meddra.", gsub('\\.', '_', max_meddra)))
 
-#this table might never get used
-#cv_substances               <- tbl(hcopen_pool, "cv_substances")
+
+cv_reports                  <- tbl(cvponl_pool, in_schema("current2", "reports_table"))
+cv_report_drug              <- tbl(cvponl_pool, in_schema("current2", "report_drug" ))
+cv_drug_product_ingredients <- tbl(cvponl_pool, in_schema("current2", "drug_product_ingredients"))
+cv_reactions                <- tbl(cvponl_pool, in_schema("meddra", gsub('\\.', '_', max_meddra)))
 
 
 cv_reports_temp <- cv_reports %>%
   select(report_id, seriousness_eng, death)
-
 
 cv_report_drug %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
@@ -78,7 +89,6 @@ topings_cv <- cv_drug_product_ingredients %>%
   as.data.frame() %>%
   `[[`(1) %>%
   sort()
-
 
 smq_choices <- cv_reactions %>%
   distinct(smq_name) %>%
@@ -100,6 +110,8 @@ soc_choices <- cv_reactions %>%
   `[[`(1) %>%
   sort()
 
+print("done global")
+timer <- time_elapsed(timer)
 
 # Grabbing column names from the tbl metadata.
 # Used for selecting columns in the downloads tab.

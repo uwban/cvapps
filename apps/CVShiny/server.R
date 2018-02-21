@@ -181,6 +181,7 @@ shinyServer(function(input, output, session) {
                  
                  
                  incProgress(1/9)
+                 
                })
   )
   
@@ -295,48 +296,43 @@ shinyServer(function(input, output, session) {
     
     
     
-    date_list <- data %>% 
-      select(datintreceived)
+    dates <- data %>% select(datintreceived) %>% dplyr::summarize(date_min = min(datintreceived),
+                                                                        date_max = max(datintreceived)) %>%
+      as.data.frame()
     
-    dates <- data.frame(date_min = min(date_list$datintreceived), date_max = max(date_list$datintreceived))
-  
     two_years <- 730
-    #check to see if histogram should be in years or months
+    
     if ((dates$date_max - dates$date_min) >= two_years) {
-      time_period <- "years"
+      time_period <- "year"
       time_function <- function(x) {years(x)}
     } else {
-      time_period <- "months"
+      time_period <- "month"
       time_function <- function(x) {months(x)}
     }
     
-    #truncate the date into the choice made above
     data_r <- data %>% select(c(datintreceived, seriousness_eng, death)) %>%
-      dplyr::mutate(time_p = as.Date(trunc.POSIXt(datintreceived, units = time_period)))
+      dplyr::mutate(time_p = date_trunc(time_period, datintreceived))
     
     
-    #select the total results number counts grouped by time
     total_results <- data_r %>%
       group_by(time_p) %>%
       dplyr::summarize(total = n())
     
-    
-    #select all none serious results counts grouped by time
     nonserious_results <- data_r %>%
       filter(seriousness_eng == "No") %>%
       group_by(time_p) %>%
       dplyr::summarize(Nonserious = n())
     
-    #select all serious excluding death results counts grouped by time
+    
     serious_results <- data_r %>%
-      filter(seriousness_eng == "Yes") %>%
-      filter(is.na(death) | death == 2) %>%
-      group_by(time_p)  %>%
+      filter(seriousness_eng == "Yes" & (is.null(death) || death == '2')) %>%
+      group_by(time_p) %>%
       dplyr::summarize("Serious(Excluding Death)" = n())
-
-    #select all deaths counts grouped by time
+    
+    
+    
     death_results <- data_r %>%
-      filter(death == 1) %>%
+      filter(death == '1') %>%
       group_by(time_p) %>%
       dplyr::summarize(Death = n())
     

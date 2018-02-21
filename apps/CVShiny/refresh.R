@@ -1,7 +1,5 @@
 library(data.table)
 library(magrittr)
-library(dplyr)
-library(plyr)
 library(pool)
 library(RPostgreSQL)
 #library(feather)
@@ -11,8 +9,8 @@ library(RPostgreSQL)
 cvponl_write <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                        host     = "shiny.hc.local",
                        dbname   = "cvponl",
-                       user     = "hcwriter",
-                       password = "canada2")
+                       user     = "",
+                       password = "")
 
 #categorizes into age groups, can't use what is in the reports table as is because it has a lot of NULL values
 #INPUT: cv_reports: table 
@@ -92,10 +90,10 @@ meddra_make <- function(meddra_list, con){
   #upload table
   dbWriteTable(cvponl_write,  c("meddra", meddra_list[4]), reactions_soc, overwrite = FALSE, temporary = FALSE, row.names = FALSE)
   #create indices for values used later: this might not be a complete list
-  dbGetQuery(con, paste0("CREATE INDEX report_id ON  meddra.", meddra_list[4], " (report_id)"))
-  dbGetQuery(con, paste0("CREATE INDEX smq_name ON meddra.", meddra_list[4], " (smq_name)"))
-  dbGetQuery(con, paste0("CREATE INDEX pt_name_eng ON meddra.", meddra_list[4], " (pt_name_eng)"))
-  dbGetQuery(con, paste0("CREATE INDEX soc_name_eng ON meddra.", meddra_list[4], " (soc_name_eng)"))
+  dbGetQuery(con, paste0("CREATE INDEX ON  meddra.", meddra_list[4], " (report_id)"))
+  dbGetQuery(con, paste0("CREATE INDEX ON meddra.", meddra_list[4], " (smq_name)"))
+  dbGetQuery(con, paste0("CREATE INDEX ON meddra.", meddra_list[4], " (pt_name_eng)"))
+  dbGetQuery(con, paste0("CREATE INDEX ON meddra.", meddra_list[4], " (soc_name_eng)"))
 }
 
 #updates database table with the maximum date and current meddra version
@@ -206,18 +204,18 @@ refresh <- function() {
   source("global.R")
   
   #create some useful indexes
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_report_id ON current2.reports_table  (report_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_reporter_type_eng ON current2.reports_table (reporter_type_eng)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_age_group_clean ON current2.reports_table  (age_group_clean)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_drugname ON current2.reports_table  (drugname)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_seriousness_code ON current2.reports_table  (seriousness_code)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_datintreceived ON current2.reports_table (datintreceived)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (report_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (reporter_type_eng)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (age_group_clean)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (drugname)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (seriousness_code)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (datintreceived)")
   
-  dbGetQuery(cvponl_write, "CREATE INDEX report_drug_report_id ON current2.report_drug  (report_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_drug_drugname ON current2.report_drug  (drugname)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (report_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (drugname)")
   
-  dbGetQuery(cvponl_write, "CREATE INDEX drug_product_ingredients_active_ingredient_id ON current2.drug_product_ingredients  (active_ingredient_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX drug_product_ingredients_drugname ON current2.drug_product_ingredients  (drugname)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (active_ingredient_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (drugname)")
   
 
   
@@ -226,12 +224,6 @@ refresh <- function() {
   
 }
 
-#Getting cv_substances table: This table has the mapping from active ingredients to drugnames?
-#drug_product_ingredients <- dbGetQuery(cvponl_write, "SELECT * FROM current.drug_product_ingredients")
-#active_ingredients <- dbGetQuery(cvponl_write, "SELECT * FROM current.active_ingredients")
-
-#cv_substances <- left_join(drug_product_ingredients, active_ingredients, "active_ingredient_id")%>%
-#  group_by(primary_ingredient_id)
 
 
 
@@ -239,5 +231,11 @@ close_all_con <- function() {
   all_cons <- dbListConnections(RPostgreSQL::PostgreSQL())
   for(con in all_cons)
     +  dbDisconnect(con)
+}
+
+time_elapsed <- function(time){
+  time_elapsed <- Sys.time() - time
+  print(time_elapsed)
+  return(time_elapsed)
 }
 
