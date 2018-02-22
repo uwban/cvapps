@@ -76,39 +76,23 @@ cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 
 
 #following Queries are used to generate autocomplete lists
-topbrands <- cv_report_drug %>%
-  distinct(drugname) %>%
-  as.data.frame() %>%
-  `[[`(1) %>%
-  sort() %>%
-  `[`(-c(1,2)) # dropping +ARTHRI-PLUS\u0099 which is problematic
 
 
-topings_cv <- cv_drug_product_ingredients %>%
-  distinct(active_ingredient_name) %>%
-  as.data.frame() %>%
-  `[[`(1) %>%
-  sort()
+directory <- getwd()
+print(paste0(directory, '/feather_files/topbrands.feather'))
 
-smq_choices <- cv_reactions %>%
-  distinct(smq_name) %>%
-  as.data.frame() %>%
-  filter(!is.na(smq_name)) %>%
-  `[[`(1) %>%
-  sort()
+#read feather files for autocomplete lists
+topbrands <- read_feather(paste0(directory, '/feather_files/topbrands.feather')) %>%
+  `[[`(1)
+topings_cv <- read_feather(paste0(directory, '/feather_files/topings_cv.feather'))%>%
+  `[[`(1)
+smq_choices <- read_feather(paste0(directory, '/feather_files/smq_choices.feather'))%>%
+  `[[`(1)
+pt_choices <- read_feather(paste0(directory, '/feather_files/pt_choices.feather'))%>%
+  `[[`(1)
+soc_choices <- read_feather(paste0(directory, '/feather_files/soc_choices.feather'))%>%
+  `[[`(1)
 
-pt_choices <- cv_reactions %>%
-  distinct(pt_name_eng) %>% 
-  as.data.frame() %>%
-  `[[`(1) %>%
-  c(smq_choices) %>%
-  sort()
-
-soc_choices <- cv_reactions %>%
-  distinct(soc_name_eng) %>%
-  as.data.frame() %>%
-  `[[`(1) %>%
-  sort()
 
 print("done global")
 timer <- time_elapsed(timer)
