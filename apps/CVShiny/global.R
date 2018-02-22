@@ -41,8 +41,8 @@ timer <- time_elapsed(Sys.time())
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
-                      user     = "",
-                      password = "")
+                      user     = "hcwriter",
+                      password = "canada2")
 
 
 

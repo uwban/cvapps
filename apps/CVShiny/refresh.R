@@ -8,8 +8,8 @@ library (feather)
 cvponl_write <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                        host     = "shiny.hc.local",
                        dbname   = "cvponl",
-                       user     = "",
-                       password = "")
+                       user     = "hcwriter",
+                       password = "canada2")
 
 
 

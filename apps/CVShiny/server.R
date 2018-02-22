@@ -448,31 +448,31 @@ shinyServer(function(input, output, session) {
       filter(seriousness_eng == "Yes")
     
     n_congen <- data %>%
-      filter(congenital_anomaly == 1) %>%
+      filter(congenital_anomaly == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_death <- data %>%
-      filter(death == 1) %>%
+      filter(death == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_disab <- data %>%
-      filter(disability == 1) %>%
+      filter(disability == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_lifethreat <- data %>%
-      filter(life_threatening == 1) %>%
+      filter(life_threatening == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_hosp <- data %>%
-      filter(hosp_required == 1) %>%
+      filter(hosp_required == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_other <- data %>%
-      filter(other_medically_imp_cond == 1) %>%
+      filter(other_medically_imp_cond == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     ## Check for NotSpecified ##
     n_notspec <- data %>%
-      filter(death != 1 | is.na(death)) %>%
-      filter(disability != 1 | is.na(disability)) %>%
-      filter(congenital_anomaly != 1 | is.na(congenital_anomaly)) %>%
-      filter(life_threatening != 1 | is.na(life_threatening)) %>%
-      filter(hosp_required != 1 | is.na(hosp_required)) %>%
-      filter(other_medically_imp_cond != 1 | is.na(other_medically_imp_cond)) %>%
+      filter(death != '1' | is.na(death)) %>%
+      filter(disability != '1' | is.na(disability)) %>%
+      filter(congenital_anomaly != '1' | is.na(congenital_anomaly)) %>%
+      filter(life_threatening != '1' | is.na(life_threatening)) %>%
+      filter(hosp_required != '1' | is.na(hosp_required)) %>%
+      filter(other_medically_imp_cond != '1' | is.na(other_medically_imp_cond)) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     
     serious_reasons <- data.frame(label = c("Death",
