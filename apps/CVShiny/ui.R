@@ -105,7 +105,7 @@ dashboardPage(
     fluidRow(
       column(12,
              dateRangeInput('daterange', 'Select date range',
-                  format="yyyy-mm-dd",min ="1965-01-01", max = "2016-06-30", start = "2000-01-01", end = "2016-06-30" ))),
+                  format="yyyy-mm-dd",min ="1965-01-01", max = max_date, start = "2000-01-01", end = max_date ))),
       # hacky way to get borders correct
     conditionalPanel(
       condition = "input.search_rxn != 'disable'",
@@ -242,8 +242,8 @@ dashboardPage(
                   "</p>",
                   "<br>",
                   "<p>",
-                  "<strong>Data last updated: 2016-06-30</strong><br>",
-                  "<strong>MedDRA Version: 20.1</strong><br>",
+                  paste0("<strong>Data last updated:", max_date, "</strong><br>"),
+                  paste0("<strong>MedDRA Version:", max_meddra, "</strong><br>"),
                   "Data provided by the Canada Vigilance Adverse Reaction Online Database. The recency of the data is therefore ",
                   "dependent on when the data source is updated, and is the responsibility of the Canada Vigilance Program. ",
                   "For more information, please refer to ",

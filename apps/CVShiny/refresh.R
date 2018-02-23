@@ -1,18 +1,109 @@
 library(data.table)
 library(magrittr)
-library(dplyr)
-library(plyr)
 library(pool)
 library(RPostgreSQL)
-#library(feather)
-#library(foreach)
-#library(doParallel)
+library (feather)
+
 
 cvponl_write <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                        host     = "shiny.hc.local",
                        dbname   = "cvponl",
                        user     = "hcwriter",
                        password = "canada2")
+
+
+
+#make sure this runs after a database and/or meddra update
+write_feather_files <- function() {
+  
+  max_date <- meddra_and_date %>%
+    `[[`(1)
+  
+  max_meddra <- meddra_and_date %>%
+    `[[`(2) 
+  
+  # get tables from postgresql db. current2 is the schema used, use format: schema.tablename to access tables
+  #cv_reports <- dbGetQuery(cvponl_pool, "SELECT *FROM current2.reports_table")
+  #cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.report_drug")
+  #cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.drug_product_ingredients")
+  #cv_reactions <- dbGetQuery(cvponl_pool, paste0("SELECT * FROM meddra.", gsub('\\.', '_', max_meddra)))
+  
+  
+  cv_reports                  <- tbl(cvponl_write, in_schema("current2", "reports_table"))
+  cv_report_drug              <- tbl(cvponl_write, in_schema("current2", "report_drug" ))
+  cv_drug_product_ingredients <- tbl(cvponl_write, in_schema("current2", "drug_product_ingredients"))
+  cv_reactions                <- tbl(cvponl_write, in_schema("meddra", gsub('\\.', '_', max_meddra)))
+  
+  
+  cv_reports_temp <- cv_reports %>%
+    select(report_id, seriousness_eng, death)
+  
+  cv_report_drug %<>% left_join(cv_reports_temp, "report_id" = "report_id")
+  cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
+  
+  #following Queries are used to generate autocomplete lists
+  topbrands <- cv_report_drug %>%
+    distinct(drugname) %>%
+    as.data.frame() %>%
+    `[[`(1) %>%
+    sort() %>%
+    `[`(-c(1,2))%>% #dropping +ARTHRI-PLUS\u0099 which is problematic
+    as.data.frame() 
+  
+  topings_cv <- cv_drug_product_ingredients %>%
+    distinct(active_ingredient_name) %>%
+    as.data.frame() %>%
+    `[[`(1) %>%
+    sort() %>% 
+    as.data.frame()
+  
+  smq_choices <- cv_reactions %>%
+    distinct(smq_name) %>%
+    as.data.frame() %>%
+    filter(!is.na(smq_name)) %>%
+    `[[`(1) %>%
+    sort()
+  
+  pt_choices <- cv_reactions %>%
+    distinct(pt_name_eng) %>% 
+    as.data.frame() %>%
+    `[[`(1) %>%
+    c(smq_choices) %>%
+    sort() %>% 
+    as.data.frame()
+  
+  smq_choices %<>% as.data.frame()
+  
+  soc_choices <- cv_reactions %>%
+    distinct(soc_name_eng) %>%
+    as.data.frame() %>%
+    `[[`(1) %>%
+    sort() %>% 
+    as.data.frame()
+  
+  
+  directory <- getwd()
+  
+  topbrands_path <- paste0(directory, '/apps/CVShiny/feather_files/topbrands.feather')
+  topings_cv_path <- paste0(directory, '/apps/CVShiny/feather_files/topings_cv.feather')
+  smq_choices_path <- paste0(directory, '/apps/CVShiny/feather_files/smq_choices.feather')
+  pt_choices_path <- paste0(directory, '/apps/CVShiny/feather_files/pt_choices.feather')
+  soc_choices_path <- paste0(directory, '/apps/CVShiny/feather_files/soc_choices.feather')
+  
+  dir.create(file.path(directory, 'apps/CVShiny/feather_files'))
+  
+  file.create(topbrands_path)
+  file.create(topings_cv_path)
+  file.create(smq_choices_path)
+  file.create(pt_choices_path)
+  file.create(soc_choices_path)
+  
+  write_feather(topbrands, topbrands_path)
+  write_feather(topings_cv, topings_cv_path)
+  write_feather(smq_choices, smq_choices_path)
+  write_feather(pt_choices, pt_choices_path)
+  write_feather(soc_choices, soc_choices_path)
+}
 
 #categorizes into age groups, can't use what is in the reports table as is because it has a lot of NULL values
 #INPUT: cv_reports: table 
@@ -92,10 +183,10 @@ meddra_make <- function(meddra_list, con){
   #upload table
   dbWriteTable(cvponl_write,  c("meddra", meddra_list[4]), reactions_soc, overwrite = FALSE, temporary = FALSE, row.names = FALSE)
   #create indices for values used later: this might not be a complete list
-  dbGetQuery(con, paste0("CREATE INDEX report_id ON  meddra.", meddra_list[4], " (report_id)"))
-  dbGetQuery(con, paste0("CREATE INDEX smq_name ON meddra.", meddra_list[4], " (smq_name)"))
-  dbGetQuery(con, paste0("CREATE INDEX pt_name_eng ON meddra.", meddra_list[4], " (pt_name_eng)"))
-  dbGetQuery(con, paste0("CREATE INDEX soc_name_eng ON meddra.", meddra_list[4], " (soc_name_eng)"))
+  dbGetQuery(con, paste0("CREATE INDEX ON  meddra.", meddra_list[4], " (report_id)"))
+  dbGetQuery(con, paste0("CREATE INDEX ON meddra.", meddra_list[4], " (smq_name)"))
+  dbGetQuery(con, paste0("CREATE INDEX ON meddra.", meddra_list[4], " (pt_name_eng)"))
+  dbGetQuery(con, paste0("CREATE INDEX ON meddra.", meddra_list[4], " (soc_name_eng)"))
 }
 
 #updates database table with the maximum date and current meddra version
@@ -205,39 +296,49 @@ refresh <- function() {
   
   source("global.R")
   
-  #create some useful indexes
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_report_id ON current2.reports_table  (report_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_reporter_type_eng ON current2.reports_table (reporter_type_eng)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_age_group_clean ON current2.reports_table  (age_group_clean)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_drugname ON current2.reports_table  (drugname)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_seriousness_code ON current2.reports_table  (seriousness_code)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_table_datintreceived ON current2.reports_table (datintreceived)")
+  #create some useful indexes (some may not be necessary if this process becomes too slow in the future)
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (report_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (reporter_type_eng)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (age_group_clean)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (drugname)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (seriousness_code)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (seriousness_eng)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (datintreceived)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (death)")
   
-  dbGetQuery(cvponl_write, "CREATE INDEX report_drug_report_id ON current2.report_drug  (report_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX report_drug_drugname ON current2.report_drug  (drugname)")
   
-  dbGetQuery(cvponl_write, "CREATE INDEX drug_product_ingredients_active_ingredient_id ON current2.drug_product_ingredients  (active_ingredient_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX drug_product_ingredients_drugname ON current2.drug_product_ingredients  (drugname)")
   
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (report_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (drugname)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (drug_product_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (report_drug_id)")
 
   
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (active_ingredient_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (drugname)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (drug_product_ingredient_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (drug_product_id)")
+  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (product_id)")
   
   
+  
+  #finish up by creating autocomplete lists
+  write_feather_files()
   
 }
 
-#Getting cv_substances table: This table has the mapping from active ingredients to drugnames?
-#drug_product_ingredients <- dbGetQuery(cvponl_write, "SELECT * FROM current.drug_product_ingredients")
-#active_ingredients <- dbGetQuery(cvponl_write, "SELECT * FROM current.active_ingredients")
 
-#cv_substances <- left_join(drug_product_ingredients, active_ingredients, "active_ingredient_id")%>%
-#  group_by(primary_ingredient_id)
-
-
-
+#useful for development
 close_all_con <- function() {
   all_cons <- dbListConnections(RPostgreSQL::PostgreSQL())
   for(con in all_cons)
     +  dbDisconnect(con)
+}
+
+#useful for development
+time_elapsed <- function(time){
+  time_elapsed <- Sys.time() - time
+  print(time_elapsed)
+  return(time_elapsed)
 }
 

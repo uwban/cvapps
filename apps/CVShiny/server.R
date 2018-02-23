@@ -181,6 +181,7 @@ shinyServer(function(input, output, session) {
                  
                  
                  incProgress(1/9)
+                 
                })
   )
   
@@ -295,48 +296,43 @@ shinyServer(function(input, output, session) {
     
     
     
-    date_list <- data %>% 
-      select(datintreceived)
+    dates <- data %>% select(datintreceived) %>% dplyr::summarize(date_min = min(datintreceived),
+                                                                        date_max = max(datintreceived)) %>%
+      as.data.frame()
     
-    dates <- data.frame(date_min = min(date_list$datintreceived), date_max = max(date_list$datintreceived))
-  
     two_years <- 730
-    #check to see if histogram should be in years or months
+    
     if ((dates$date_max - dates$date_min) >= two_years) {
-      time_period <- "years"
+      time_period <- "year"
       time_function <- function(x) {years(x)}
     } else {
-      time_period <- "months"
+      time_period <- "month"
       time_function <- function(x) {months(x)}
     }
     
-    #truncate the date into the choice made above
     data_r <- data %>% select(c(datintreceived, seriousness_eng, death)) %>%
-      dplyr::mutate(time_p = as.Date(trunc.POSIXt(datintreceived, units = time_period)))
+      dplyr::mutate(time_p = date_trunc(time_period, datintreceived))
     
     
-    #select the total results number counts grouped by time
     total_results <- data_r %>%
       group_by(time_p) %>%
       dplyr::summarize(total = n())
     
-    
-    #select all none serious results counts grouped by time
     nonserious_results <- data_r %>%
       filter(seriousness_eng == "No") %>%
       group_by(time_p) %>%
       dplyr::summarize(Nonserious = n())
     
-    #select all serious excluding death results counts grouped by time
+    
     serious_results <- data_r %>%
-      filter(seriousness_eng == "Yes") %>%
-      filter(is.na(death) | death == 2) %>%
-      group_by(time_p)  %>%
+      filter(seriousness_eng == "Yes" & (is.null(death) || death == '2')) %>%
+      group_by(time_p) %>%
       dplyr::summarize("Serious(Excluding Death)" = n())
-
-    #select all deaths counts grouped by time
+    
+    
+    
     death_results <- data_r %>%
-      filter(death == 1) %>%
+      filter(death == '1') %>%
       group_by(time_p) %>%
       dplyr::summarize(Death = n())
     
@@ -452,31 +448,31 @@ shinyServer(function(input, output, session) {
       filter(seriousness_eng == "Yes")
     
     n_congen <- data %>%
-      filter(congenital_anomaly == 1) %>%
+      filter(congenital_anomaly == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_death <- data %>%
-      filter(death == 1) %>%
+      filter(death == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_disab <- data %>%
-      filter(disability == 1) %>%
+      filter(disability == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_lifethreat <- data %>%
-      filter(life_threatening == 1) %>%
+      filter(life_threatening == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_hosp <- data %>%
-      filter(hosp_required == 1) %>%
+      filter(hosp_required == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     n_other <- data %>%
-      filter(other_medically_imp_cond == 1) %>%
+      filter(other_medically_imp_cond == '1') %>%
       tally() %>% as.data.frame() %>% `$`(n)
     ## Check for NotSpecified ##
     n_notspec <- data %>%
-      filter(death != 1 | is.na(death)) %>%
-      filter(disability != 1 | is.na(disability)) %>%
-      filter(congenital_anomaly != 1 | is.na(congenital_anomaly)) %>%
-      filter(life_threatening != 1 | is.na(life_threatening)) %>%
-      filter(hosp_required != 1 | is.na(hosp_required)) %>%
-      filter(other_medically_imp_cond != 1 | is.na(other_medically_imp_cond)) %>%
+      filter(death != '1' | is.na(death)) %>%
+      filter(disability != '1' | is.na(disability)) %>%
+      filter(congenital_anomaly != '1' | is.na(congenital_anomaly)) %>%
+      filter(life_threatening != '1' | is.na(life_threatening)) %>%
+      filter(hosp_required != '1' | is.na(hosp_required)) %>%
+      filter(other_medically_imp_cond != '1' | is.na(other_medically_imp_cond)) %>%
       tally() %>% as.data.frame() %>% `$`(n)
     
     serious_reasons <- data.frame(label = c("Death",
