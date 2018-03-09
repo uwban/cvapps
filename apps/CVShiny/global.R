@@ -33,7 +33,7 @@ source("refresh.R")
 
 ########## Codes to fetch top 1000 specific results to be used in dropdown menu ############### 
 # Temperary solution: fetch all tables to local and run functions on them
-timer <- time_elapsed(Sys.time())
+
 
 
 
@@ -41,8 +41,8 @@ timer <- time_elapsed(Sys.time())
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
-                      user     = "hcwriter",
-                      password = "canada2")
+                      user     = "",
+                      password = "")
 
 
 
@@ -54,12 +54,6 @@ max_date <- meddra_and_date %>%
 
 max_meddra <- meddra_and_date %>%
   `[[`(2) 
-
-# get tables from postgresql db. current2 is the schema used, use format: schema.tablename to access tables
-#cv_reports <- dbGetQuery(cvponl_pool, "SELECT *FROM current2.reports_table")
-#cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.report_drug")
-#cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.drug_product_ingredients")
-#cv_reactions <- dbGetQuery(cvponl_pool, paste0("SELECT * FROM meddra.", gsub('\\.', '_', max_meddra)))
 
 
 cv_reports                  <- tbl(cvponl_pool, in_schema("current2", "reports_table"))
@@ -79,7 +73,6 @@ cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 
 
 directory <- getwd()
-print(paste0(directory, '/feather_files/topbrands.feather'))
 
 #read feather files for autocomplete lists
 topbrands <- read_feather(paste0(directory, '/feather_files/topbrands.feather')) %>%
@@ -93,9 +86,6 @@ pt_choices <- read_feather(paste0(directory, '/feather_files/pt_choices.feather'
 soc_choices <- read_feather(paste0(directory, '/feather_files/soc_choices.feather'))%>%
   `[[`(1)
 
-
-print("done global")
-timer <- time_elapsed(timer)
 
 # Grabbing column names from the tbl metadata.
 # Used for selecting columns in the downloads tab.

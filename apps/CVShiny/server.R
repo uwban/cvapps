@@ -33,30 +33,30 @@ shinyServer(function(input, output, session) {
   
   #get time in milliseconds
   #system time mod 24hr + 2hr
-  now_time <- Sys.time() 
+  #now_time <- print(Sys.time()) 
   
-  day_time <- now_time %>%
-    trunc("days") %>%
-    as.numeric
-  
-  
-  milli_time <-(((as.numeric(now_time) - day_time) %% 86400) + 7200) * 1000
+  #day_time <- now_time %>%
+   # trunc("days") %>%
+    #as.numeric
   
   
-  autoInvalidate <- reactiveTimer(milli_time, session = NULL)
+  #milli_time <-(((as.numeric(now_time) - day_time) %% 86400) + 7200) * 1000
   
-  observe({
+  
+  #autoInvalidate <- reactiveTimer(milli_time, session = NULL)
+  
+
+  #observe({
     # Invalidate and re-execute this reactive expression every time the
     # timer fires.
-    autoInvalidate()
+   # autoInvalidate()
     
     #if the remote date is later we need to update the database that the app points to
-    if(dateCheck()){
-      refresh()
-    }
-  })
+    #if(dateCheck()){
+     # refresh()
+    #}
+  #})
 
-  
   
   
   observeEvent(reactiveSearchButton(),
@@ -76,16 +76,27 @@ shinyServer(function(input, output, session) {
                  
                  #search variables
                  current_search$name_type <- input$name_type
+   
                  current_search$name <- name
+
                  current_search$drug_inv <- input$drug_inv
+
                  current_search$seriousness_type <- input$seriousness_type
+
                  current_search$rxn <- input$search_rxn
+
                  current_search$gender <- input$search_gender
+
                  current_search$soc <- input$search_soc
+
                  current_search$age <- input$search_age
+
                  current_search$date_range <- dateRange
+
                  current_search$checkbox_filter <- input$filter_over_100
                  incProgress(1/9, detail = 'Filtering Report Date Range')
+                 
+
                  
                  if (month(input$daterange[2]) - month(input$daterange[1]) == 0)
                  {
@@ -95,13 +106,16 @@ shinyServer(function(input, output, session) {
                  endDate <- endDate %>% ymd(tz = 'EST') %>% floor_date(unit="month")
                  dateRange <- c(startDate, endDate)
                  
+                 #first filter by date
                  cv_reports_filtered_ids <- cv_reports %>%
                    filter(datintreceived >= dateRange[1], datintreceived <= dateRange[2])
                  incProgress(1/9, detail = 'Filtering Seriousness Type and Gender')
                  
+                 #filter by type of adverse event if selected
                  if (current_search$seriousness_type == "Death") {cv_reports_filtered_ids %<>% filter(death == '1')}
                  else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reports_filtered_ids %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
                  
+                 #filter by gender if selected
                  if (current_search$gender == 'Male' | current_search$gender == 'Female') {
                    cv_reports_filtered_ids %<>% filter(gender_eng == current_search$gender)
                  }
@@ -122,9 +136,11 @@ shinyServer(function(input, output, session) {
                    
                    incProgress(1/9, detail = 'Filtering by Brand')
                    
+                   #this is currently dead code
                  } else if (current_search$name_type == "ingredient2" & !is.null(current_search$name) && current_search$name != "") {
                    related_drugs <- cv_substances %>% filter(ing == current_search$name)
                    cv_report_drug_filtered %<>% semi_join(related_drugs, by = "drugname")
+                   
                    
                  } else if (current_search$name_type == "ingredient" & !is.null(current_search$name)) {
                    if (length(current_search$name) == 1) related_drugs <- cv_drug_product_ingredients %>% filter(active_ingredient_name == current_search$name)
@@ -159,7 +175,7 @@ shinyServer(function(input, output, session) {
                  # cv_reactions_filtered %<>% as.data.frame()
                  if (current_search$seriousness_type == "Death") {cv_reactions_filtered %<>% filter(death == '1')}
                  else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reactions_filtered %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
-                 
+
                  
                  selected_ids$ids <-  cv_reports_filtered_ids %>%
                    semi_join(cv_report_drug_filtered, "report_id" = "report_id") %>%
@@ -175,7 +191,7 @@ shinyServer(function(input, output, session) {
                      easyClose = TRUE))
                    return()
                  }
-                 
+
                  #progress bar
                  incProgress(1/9, detail = 'Fetching data...')
                  
@@ -294,7 +310,7 @@ shinyServer(function(input, output, session) {
 
     data <- mainDataSelection()
     
-    
+
     
     dates <- data %>% select(datintreceived) %>% dplyr::summarize(date_min = min(datintreceived),
                                                                         date_max = max(datintreceived)) %>%

@@ -7,9 +7,9 @@ library (feather)
 
 cvponl_write <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                        host     = "shiny.hc.local",
-                       dbname   = "cvponl",
-                       user     = "hcwriter",
-                       password = "canada2")
+                       dbname   = "",
+                       user     = "",
+                       password = "")
 
 
 
@@ -21,12 +21,6 @@ write_feather_files <- function() {
   
   max_meddra <- meddra_and_date %>%
     `[[`(2) 
-  
-  # get tables from postgresql db. current2 is the schema used, use format: schema.tablename to access tables
-  #cv_reports <- dbGetQuery(cvponl_pool, "SELECT *FROM current2.reports_table")
-  #cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.report_drug")
-  #cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.drug_product_ingredients")
-  #cv_reactions <- dbGetQuery(cvponl_pool, paste0("SELECT * FROM meddra.", gsub('\\.', '_', max_meddra)))
   
   
   cv_reports                  <- tbl(cvponl_write, in_schema("current2", "reports_table"))
@@ -272,7 +266,7 @@ refresh <- function() {
   
   dbGetQuery(cvponl_write, "CREATE SCHEMA IF NOT EXISTS current2")
   
-  query_list <- lapply(remote_table_list, function(x) paste0("CREATE MATERIALIZED VIEW ",  schema_name, ".", x, " AS SELECT * FROM remote.", x))
+  query_list <- lapply(remote_table_list, function(x) paste0("CREATE TABLE ",  schema_name, ".", x, " AS SELECT * FROM remote.", x))
   
   #applies each query
   lapply(query_list, dbGetQuery, con=cvponl_write)
@@ -289,38 +283,40 @@ refresh <- function() {
   
   
   
-  if(most_recent_meddra > current_meddra) {
+  if (most_recent_meddra > current_meddra) {
     
     meddra_make(meddra, cvponl_write)
   }
   
   source("global.R")
   
-  #create some useful indexes (some may not be necessary if this process becomes too slow in the future)
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (report_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (reporter_type_eng)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (age_group_clean)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (drugname)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (seriousness_code)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (seriousness_eng)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (datintreceived)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (death)")
   
+  #get all column names for each table that is used for creating indices
+  reports_columns <- dbGetQuery(cvponl_write, paste0("SELECT DISTINCT column_name
+    FROM information_schema.columns WHERE table_schema = '", schema_name, "' AND table_name = 'reports_table'")) %>%
+    `[[`(1) %>%
+    lapply(function(x) paste0('CREATE INDEX ON ', schema_name, '.reports_table', ' (', x, ')'))
   
+  report_drug_columns <- dbGetQuery(cvponl_write, paste0("SELECT DISTINCT column_name
+    FROM information_schema.columns WHERE table_schema =  '", schema_name, "' AND table_name = 'report_drug'")) %>%
+    `[[`(1) %>%
+    lapply(function(x) paste0('CREATE INDEX ON ', schema_name, '.report_drug', ' (', x, ')'))
   
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (report_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (drugname)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (drug_product_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (report_drug_id)")
+  drug_product_ingredients_columns<- dbGetQuery(cvponl_write, paste0("SELECT DISTINCT column_name
+    FROM information_schema.columns WHERE table_schema =  '", schema_name, "' AND table_name = 'drug_product_ingredients'")) %>%
+    `[[`(1) %>%
+    lapply(function(x) paste0('CREATE INDEX ON ', schema_name, '.drug_product_ingredients', ' (', x, ')'))
+  
+  meddra_columns <- dbGetQuery(cvponl_write, paste0("SELECT DISTINCT column_name
+    FROM information_schema.columns WHERE table_schema = 'meddra' AND table_name = '",meddra[4],"'")) %>%
+    `[[`(1) %>%
+    lapply(function(x) paste0('CREATE INDEX ON meddra.', meddra[4], ' (', x, ')')) 
+  
+  index_list <- c(reports_columns, report_drug_columns, drug_product_ingredients_columns, meddra_columns)
 
   
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (active_ingredient_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (drugname)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (drug_product_ingredient_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (drug_product_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (product_id)")
-  
-  
+  #create indices on all the columns (overkill, but whatever)
+  lapply(index_list, dbGetQuery, con=cvponl_write)
   
   #finish up by creating autocomplete lists
   write_feather_files()
@@ -339,6 +335,6 @@ close_all_con <- function() {
 time_elapsed <- function(time){
   time_elapsed <- Sys.time() - time
   print(time_elapsed)
-  return(time_elapsed)
+  return(Sys.time())
 }
 
