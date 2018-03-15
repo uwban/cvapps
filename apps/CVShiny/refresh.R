@@ -8,8 +8,8 @@ library (feather)
 cvponl_write <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                        host     = "shiny.hc.local",
                        dbname   = "cvponl",
-                       user     = "hcwriter",
-                       password = "canada2")
+                       user     = "",
+                       password = "")
 
 
 
@@ -21,12 +21,6 @@ write_feather_files <- function() {
   
   max_meddra <- meddra_and_date %>%
     `[[`(2) 
-  
-  # get tables from postgresql db. current2 is the schema used, use format: schema.tablename to access tables
-  #cv_reports <- dbGetQuery(cvponl_pool, "SELECT *FROM current2.reports_table")
-  #cv_report_drug <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.report_drug")
-  #cv_drug_product_ingredients <- dbGetQuery(cvponl_pool, "SELECT * FROM current2.drug_product_ingredients")
-  #cv_reactions <- dbGetQuery(cvponl_pool, paste0("SELECT * FROM meddra.", gsub('\\.', '_', max_meddra)))
   
   
   cv_reports                  <- tbl(cvponl_write, in_schema("current2", "reports_table"))
@@ -234,99 +228,6 @@ dateCheck <- function() {
 
 }
 
-#could break this down into smaller functions, but it only has one use case
-#this function is the main function that calls if the check function fails (I GUESS), need to move the if statements
-#therefore it is only called if date in remote has changed!
-refresh <- function() {
-  
-  
-  #TODO: getting date from here would be the fastest way to find out if the current schema is out of date
-  
-  #get the date from the refresh tracking schema
-
-  
-  #get the most recent date of a report published in remote schema
-  remote_date <- dbGetQuery(cvponl_write, "SELECT * FROM remote.reports") %>%
-    dplyr::summarize(max_date = max(datintreceived)) %>%
-    `[[`(1) 
-  
-  current_meddra <- dbGetQuery(cvponl_write, "SELECT * FROM date_refresh.history") %>%
-    dplyr::summarize(max_med = max(meddra_version)) %>%
-    `[[`(1) 
-  
-  meddra <- meddra_parse()
-  most_recent_meddra <- meddra[1]
-
-
-  
-  schema_new <- date_update(remote_date, cvponl_write)
-  
-  dbGetQuery(cvponl_write, paste0("ALTER SCHEMA current2 RENAME TO ", schema_new))
-  
-  schema_name <- "current2"
-                       
-  #get a list of all tables from remote schema to be copied
-  remote_table_list <- dbGetQuery(cvponl_write, "SELECT DISTINCT table_name 
-    FROM information_schema.tables WHERE table_schema = 'remote'") %>%
-    `[[`(1)
-  
-  dbGetQuery(cvponl_write, "CREATE SCHEMA IF NOT EXISTS current2")
-  
-  query_list <- lapply(remote_table_list, function(x) paste0("CREATE MATERIALIZED VIEW ",  schema_name, ".", x, " AS SELECT * FROM remote.", x))
-  
-  #applies each query
-  lapply(query_list, dbGetQuery, con=cvponl_write)
-  
-  reports <- dbGetQuery(cvponl_write, "SELECT * FROM remote.reports")
-  updated_reports <-age_group_clean(reports)
-  
-
-  
-  
-  #add the age_group_clean column to the reports table, this is a work around and should be done upstream to save time, but for now this works
-  #this means that there is an extra table called reports_table within the schema at the moment, ideally reports would just have an extra column
-  dbWriteTable(cvponl_write, c(schema_name, "reports_table"), value = updated_reports, append = FALSE, row.names = FALSE)
-  
-  
-  
-  if(most_recent_meddra > current_meddra) {
-    
-    meddra_make(meddra, cvponl_write)
-  }
-  
-  source("global.R")
-  
-  #create some useful indexes (some may not be necessary if this process becomes too slow in the future)
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (report_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (reporter_type_eng)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (age_group_clean)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (drugname)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table  (seriousness_code)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (seriousness_eng)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (datintreceived)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.reports_table (death)")
-  
-  
-  
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (report_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (drugname)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (drug_product_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.report_drug  (report_drug_id)")
-
-  
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (active_ingredient_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (drugname)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (drug_product_ingredient_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (drug_product_id)")
-  dbGetQuery(cvponl_write, "CREATE INDEX ON current2.drug_product_ingredients  (product_id)")
-  
-  
-  
-  #finish up by creating autocomplete lists
-  write_feather_files()
-  
-}
-
 
 #useful for development
 close_all_con <- function() {
@@ -335,10 +236,104 @@ close_all_con <- function() {
     +  dbDisconnect(con)
 }
 
-#useful for development
-time_elapsed <- function(time){
-  time_elapsed <- Sys.time() - time
-  print(time_elapsed)
-  return(time_elapsed)
+#could break this down into smaller functions, but it only has one use case
+#this function is the main function that calls if the check function fails (I GUESS), need to move the if statements
+#therefore it is only called if date in remote has changed! Calling refresh() should update 
+refresh <- function() {
+  
+  
+  #TODO: getting date from here would be the fastest way to find out if the current schema is out of date
+  
+  #get the date from the refresh tracking schema
+  current_date <- dbGetQuery(cvponl_write, "SELECT * FROM date_refresh.history") %>%
+    dplyr::summarize(max_date = max(ref_date)) %>%
+    `[[`(1) 
+  
+  #get the most recent date of a report published in remote schema
+  remote_date <- dbGetQuery(cvponl_write, "SELECT * FROM remote.reports") %>%
+    dplyr::summarize(max_date = max(datintreceived)) %>%
+    `[[`(1) 
+  
+  #add indexes queries to this list for meddra and for current
+  index_list <- c()
+  
+  
+  #if there has been an update to remote schema
+  if(current_date != remote_date){
+    schema_new <- date_update(current_date, cvponl_write)
+    
+    dbGetQuery(cvponl_write, paste0("ALTER SCHEMA current2 RENAME TO ", schema_new))
+    
+    schema_name <- "current2"
+                         
+    #get a list of all tables from remote schema to be copied
+    remote_table_list <- dbGetQuery(cvponl_write, "SELECT DISTINCT table_name 
+      FROM information_schema.tables WHERE table_schema = 'remote'") %>%
+      `[[`(1)
+    
+  
+    dbGetQuery(cvponl_write, paste0("CREATE SCHEMA IF NOT EXISTS", schema_name))
+    
+    query_list <- lapply(remote_table_list, function(x) paste0("CREATE TABLE ",  schema_name, ".", x, " AS SELECT * FROM remote.", x))
+    
+    #applies each query
+    lapply(query_list, dbGetQuery, con=cvponl_write)
+    
+    reports <- dbGetQuery(cvponl_write, "SELECT * FROM remote.reports")
+    updated_reports <-age_group_clean(reports)
+  
+    #add the age_group_clean column to the reports table, this is a work around and should be done upstream to save time, but for now this works
+    #this means that there is an extra table called reports_table within the schema at the moment, ideally reports would just have an extra column
+    dbWriteTable(cvponl_write, c(schema_name, "reports_table"), value = updated_reports, append = FALSE, row.names = FALSE)
+    
+    #get all column names for each table that is used for creating indices
+    index_list <- c(index_list, dbGetQuery(cvponl_write, paste0("SELECT DISTINCT column_name
+    FROM information_schema.columns WHERE table_schema = '", schema_name, "' AND table_name = 'reports_table'")) %>%
+                      `[[`(1) %>%
+                      lapply(function(x) paste0('CREATE INDEX ON ', schema_name, '.reports_table', ' (', x, ')')))
+    
+    index_list <- c(index_list, dbGetQuery(cvponl_write, paste0("SELECT DISTINCT column_name
+    FROM information_schema.columns WHERE table_schema =  '", schema_name, "' AND table_name = 'report_drug'")) %>%
+                      `[[`(1) %>%
+                      lapply(function(x) paste0('CREATE INDEX ON ', schema_name, '.report_drug', ' (', x, ')')))
+    
+    index_list <- c(index_list, dbGetQuery(cvponl_write, paste0("SELECT DISTINCT column_name
+    FROM information_schema.columns WHERE table_schema =  '", schema_name, "' AND table_name = 'drug_product_ingredients'")) %>%
+                      `[[`(1) %>%
+                      lapply(function(x) paste0('CREATE INDEX ON ', schema_name, '.drug_product_ingredients', ' (', x, ')')))
+  }
+  
+  current_meddra <- dbGetQuery(cvponl_write, "SELECT * FROM date_refresh.history") %>%
+    dplyr::summarize(max_med = max(meddra_version)) %>%
+    `[[`(1) 
+  
+  meddra <- meddra_parse()
+  most_recent_meddra <- meddra[1]
+  
+  if (most_recent_meddra > current_meddra) {
+    
+    meddra_make(meddra, cvponl_write)
+    
+    index_list <- c(index_list, dbGetQuery(cvponl_write, paste0("SELECT DISTINCT column_name
+    FROM information_schema.columns WHERE table_schema = 'meddra' AND table_name = '",meddra[4],"'")) %>%
+                      `[[`(1) %>%
+                      lapply(function(x) paste0('CREATE INDEX ON meddra.', meddra[4], ' (', x, ')'))) 
+  }
+  
+ 
+
+  
+  if (!is.null(index_list)){
+    #create indices on all the columns (overkill, but whatever)
+    lapply(index_list, dbGetQuery, con=cvponl_write)
+  }
+  
+
+  #finish up by creating autocomplete lists
+  write_feather_files()
+  
 }
+
+refresh()
+
 

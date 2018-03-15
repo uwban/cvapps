@@ -4,7 +4,7 @@ library(lubridate)
 # To be called from ui.R
 lineChartOutput <- function(inputId, width="100%", height="400px") {
   style <- sprintf("width: %s; height: %s;",
-    validateCssUnit(width), validateCssUnit(height))
+                   validateCssUnit(width), validateCssUnit(height))
   
   tagList(
     # Include CSS/JS dependencies. Use "singleton" to make sure that even
@@ -17,7 +17,7 @@ lineChartOutput <- function(inputId, width="100%", height="400px") {
       tags$script(src="linechart-binding.js")
     )),
     div(id=inputId, class="nvd3-linechart", style=style,
-      tag("svg", list())
+        tag("svg", list())
     )
   )
 }
