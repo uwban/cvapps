@@ -3,7 +3,7 @@ library(dbplyr)
 library(Hmisc)
 library(magrittr)
 library(utils)
-library(zoo)
+#library(zoo)
 library(pool)
 
 # data visualizations
@@ -18,6 +18,7 @@ library(shinyBS)
 library(DT)
 library(dplyr)
 library(lubridate)
+library(feather)
 
 
 source("common_ui.R")

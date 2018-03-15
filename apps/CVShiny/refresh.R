@@ -24,8 +24,10 @@ write_feather_files <- function() {
   
   
   cv_reports                  <- tbl(cvponl_write, in_schema("current2", "reports_table"))
-  cv_report_drug              <- tbl(cvponl_write, in_schema("current2", "report_drug" ))
-  cv_drug_product_ingredients <- tbl(cvponl_write, in_schema("current2", "drug_product_ingredients"))
+  cv_report_drug              <- tbl(cvponl_write, in_schema("current2", "report_drug" )) #%>%
+    #select(report_id, drug_product_id, drugname, druginvolv_eng, indication_name_eng)
+  cv_drug_product_ingredients <- tbl(cvponl_write, in_schema("current2", "drug_product_ingredients")) #%>%
+    #select(active_ingredient_name, drugname, drug_product_id)
   cv_reactions                <- tbl(cvponl_write, in_schema("meddra", gsub('\\.', '_', max_meddra)))
   
   
@@ -333,6 +335,13 @@ refresh <- function() {
   write_feather_files()
   
 }
+
+close_all_con <- function() {
+   all_cons <- dbListConnections(RPostgreSQL::PostgreSQL())
+   for(con in all_cons)
+       +  dbDisconnect(con)
+}
+
 
 refresh()
 
