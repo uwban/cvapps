@@ -364,7 +364,7 @@ shinyServer(function(input, output, session) {
       full_join(nonserious_results, by = 'time_p') %>% as.data.frame() %>%
       mutate(time_p = ymd(time_p))
     
-    results <- data.frame(time_p = as.Date(time_list)) %>%
+    results <- data.frame(time_p = as_date(time_list)) %>%
       left_join(results_to_be_mapped, by = 'time_p')
     
     results[is.na(results)] <- 0

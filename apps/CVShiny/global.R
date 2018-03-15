@@ -3,7 +3,7 @@ library(dbplyr)
 library(Hmisc)
 library(magrittr)
 library(utils)
-library(zoo)
+#library(zoo)
 library(pool)
 
 # data visualizations
@@ -41,7 +41,7 @@ source("barTableUtil.R")
 #create a connection pool: insert relevant password and username
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
-                      dbname   = "",
+                      dbname   = "cvponl",
                       user     = "",
                       password = "")
 
