@@ -18,6 +18,7 @@ library(shinyBS)
 library(DT)
 library(dplyr)
 library(lubridate)
+library(feather)
 
 
 source("common_ui.R")
@@ -40,7 +41,7 @@ source("barTableUtil.R")
 #create a connection pool: insert relevant password and username
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
-                      dbname   = "cvponl",
+                      dbname   = "",
                       user     = "",
                       password = "")
 

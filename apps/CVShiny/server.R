@@ -7,7 +7,7 @@ shinyServer(function(input, output, session) {
   Sys.sleep(5)
   hide(id="loading-content",anim=TRUE,animType="fade")
   show("main-content")
-  
+
   
 
   #Autocomplete suggestions are generated
@@ -278,6 +278,9 @@ shinyServer(function(input, output, session) {
     if (nrow(selected_ids$ids) > 0)
     {
       data <- semi_join(cv_reports, selected_ids$ids, by = "report_id", copy=T)
+      ids <- selected_ids$ids %>% `[[`(1)
+      #data2 <-filter(cv_reports, report_id %in% ids) 
+
     }
     else
     {
@@ -286,6 +289,7 @@ shinyServer(function(input, output, session) {
       current_search$name = ""
       current_search$rxn = ""
     }
+    
     data
   })
   
@@ -394,13 +398,14 @@ shinyServer(function(input, output, session) {
   
   ### seriousplot ###
   seriousplot_data <- reactive({
-    ser_eng <- mainDataSelection() %>%
+    data <- mainDataSelection()
+    ser_eng <- data %>%
       count(seriousness_eng) %>%
       select(seriousness_eng,n) %>%
       mutate(label = "seriousness_eng") %>%
       as.data.frame()
     
-    death_count <- mainDataSelection() %>%
+    death_count <- data %>%
       count(death) %>%
       select(death,n) %>%
       mutate(label = "Death") %>%
