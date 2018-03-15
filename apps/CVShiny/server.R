@@ -341,6 +341,7 @@ shinyServer(function(input, output, session) {
     
     results <- data.frame(time_p = as_date(time_list)) %>%
       left_join(results_to_be_mapped, by = 'time_p')
+    print(results)
     
     results[is.na(results)] <- 0
     results

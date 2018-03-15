@@ -29,7 +29,7 @@ source("barTableUtil.R")
 
 
 
-
+options(shiny.trace=TRUE)
 # -----------------------------------------------------------------------------
 
 ########## Codes to fetch top 1000 specific results to be used in dropdown menu ############### 
