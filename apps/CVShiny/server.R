@@ -31,31 +31,6 @@ shinyServer(function(input, output, session) {
   # We need to have a reactive structure here so that it activates upon loading
   reactiveSearchButton <- reactive(as.vector(input$searchButton))
   
-  #get time in milliseconds
-  #system time mod 24hr + 2hr
-  #now_time <- print(Sys.time()) 
-  
-  #day_time <- now_time %>%
-   # trunc("days") %>%
-    #as.numeric
-  
-  
-  #milli_time <-(((as.numeric(now_time) - day_time) %% 86400) + 7200) * 1000
-  
-  
-  #autoInvalidate <- reactiveTimer(milli_time, session = NULL)
-  
-
-  #observe({
-    # Invalidate and re-execute this reactive expression every time the
-    # timer fires.
-   # autoInvalidate()
-    
-    #if the remote date is later we need to update the database that the app points to
-    #if(dateCheck()){
-     # refresh()
-    #}
-  #})
 
   
   
