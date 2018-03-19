@@ -286,7 +286,7 @@ refresh <- function() {
     lapply(query_list, dbGetQuery, con=cvponl_write)
     
     reports <- dbGetQuery(cvponl_write, "SELECT * FROM remote.reports")
-    updated_reports <-age_group_clean(reports)
+    updated_reports <- age_group_clean(reports)
     
   
     #add the age_group_clean column to the reports table, this is a work around and should be done upstream to save time, but for now this works

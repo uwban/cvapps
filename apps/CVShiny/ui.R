@@ -105,7 +105,7 @@ dashboardPage(
     fluidRow(
       column(12,
              dateRangeInput('daterange', 'Select date range',
-                  format="yyyy-mm-dd",min ="1965-01-01", max = max_date, start = "2000-01-01", end = max_date ))),
+                  format="yyyy-mm-dd",min ="1965-01-01", max = max_date, start = "2013-01-01", end = max_date ))),
       # hacky way to get borders correct
     conditionalPanel(
       condition = "input.search_rxn != 'disable'",
