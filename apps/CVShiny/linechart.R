@@ -28,13 +28,13 @@ renderLineChart <- function(expr, env=parent.frame(), quoted=FALSE) {
   # function called `func`. It's needed for the RStudio IDE's built-in
   # debugger to work properly on the expression.
   installExprFunction(expr, "func", env, quoted)
-  
+  print('help')
   function() {
     df <- func()
     dataframe_month <- df[, 1]
     dataframe_result <- df[, 2:4]
-    
 
+    #name is the category (Death, serious (excluding death), nonserious)
     mapply(function(col, name) {
       
       values <- mapply(function(val, i) {

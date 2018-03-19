@@ -48,7 +48,6 @@ shinyServer(function(input, output, session) {
                  startDate <- input$daterange[1] %>% ymd(tz = 'EST')
                  endDate <- input$daterange[2] %>% ymd(tz = 'EST')
                  dateRange <- c(startDate, endDate)
-                 
                  #search variables
                  current_search$name_type <- input$name_type
    
@@ -67,6 +66,7 @@ shinyServer(function(input, output, session) {
                  current_search$age <- input$search_age
 
                  current_search$date_range <- dateRange
+                 
 
                  current_search$checkbox_filter <- input$filter_over_100
                  incProgress(1/9, detail = 'Filtering Report Date Range')
@@ -144,19 +144,17 @@ shinyServer(function(input, output, session) {
                    if (length(current_search$soc) == 1) cv_reactions_filtered %<>% filter(soc_name_eng == current_search$soc)
                    else cv_reactions_filtered %<>% filter(soc_name_eng %in% current_search$soc)
                  }
-                 
-                 # cv_reports_filtered_ids %<>% as.data.frame()
-                 # cv_report_drug_filtered %<>% as.data.frame()
-                 # cv_reactions_filtered %<>% as.data.frame()
+
                  if (current_search$seriousness_type == "Death") {cv_reactions_filtered %<>% filter(death == '1')}
                  else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reactions_filtered %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
-
+  
                  
                  selected_ids$ids <-  cv_reports_filtered_ids %>%
                    semi_join(cv_report_drug_filtered, "report_id" = "report_id") %>%
                    semi_join(cv_reactions_filtered, "report_id" = "report_id") %>% as.data.frame()
                  incProgress(1/9, detail = 'Checking for no reports...')
                  n_ids <- selected_ids$ids %>% nrow()
+
                  if (n_ids == 0) {
                    setProgress(1)
                    showModal(modalDialog(
@@ -341,8 +339,7 @@ shinyServer(function(input, output, session) {
     
     results <- data.frame(time_p = as_date(time_list)) %>%
       left_join(results_to_be_mapped, by = 'time_p')
-    print(results)
-    
+
     results[is.na(results)] <- 0
     results
   })
@@ -588,6 +585,7 @@ shinyServer(function(input, output, session) {
   #### Data about Drugs
   drugDataSelection <- reactive({
     n_ids <- selected_ids$ids %>% nrow()
+    
     if (nrow(selected_ids$ids) > 0)
     {
       data <- semi_join(cv_report_drug, selected_ids$ids, by = "report_id", copy = T)
@@ -759,6 +757,7 @@ shinyServer(function(input, output, session) {
   
   rxnDataSelection <- reactive({
     n_ids <- selected_ids$ids %>% nrow()
+    
     if (nrow(selected_ids$ids) > 0)
     {
       data <- cv_reactions %>% semi_join(selected_ids$ids, by = "report_id", copy = T) 
