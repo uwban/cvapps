@@ -1,8 +1,6 @@
-/*DROP TABLE IF EXISTS a_date
-SELECT REPLACE(REPLACE(CAST(MAX(datintreceived) as VARCHAR), '-', '_'), '00:00:00', '_cv') as max_date into a_date FROM current2.reports
-*/
 
-ALTER SCHEMA current2 RENAME TO a_date
+ALTER SCHEMA current2 RENAME TO remote_date
+
 CREATE SCHEMA IF NOT EXISTS current2
 
 CREATE TABLE current2.active_ingredients AS SELECT * FROM remote.active_ingredients
