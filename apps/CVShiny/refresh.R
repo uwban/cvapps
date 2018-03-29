@@ -115,6 +115,10 @@ age_group_clean <- function(cv_reports){
            ifelse(age_y > 65, "Elderly", age_group_eng ))))))))
 }
 
+date_clean <- function(cv_reports){
+  
+}
+
 #get the file name of most recent meddra folder. Should be in the form /home/shared/MedDRA/meddra_20_1_english
 #parses the version number v.20.1 from the filename
 #RETURN: c(meddra_version, meddra_path)
@@ -282,11 +286,14 @@ refresh <- function() {
     lapply(query_list, dbGetQuery, con=cvponl_write)
     
     reports <- dbGetQuery(cvponl_write, "SELECT * FROM remote.reports")
-    updated_reports <-age_group_clean(reports)
+    updated_reports <- age_group_clean(reports)
+    
   
     #add the age_group_clean column to the reports table, this is a work around and should be done upstream to save time, but for now this works
     #this means that there is an extra table called reports_table within the schema at the moment, ideally reports would just have an extra column
     dbWriteTable(cvponl_write, c(schema_name, "reports_table"), value = updated_reports, append = FALSE, row.names = FALSE)
+    
+    dbGetQuery(cvponl_write, paste0("ALTER TABLE ", schema_name, ".reports_table ALTER COLUMN datintreceived TYPE date"))
     
     #get all column names for each table that is used for creating indices
     index_list <- c(index_list, dbGetQuery(cvponl_write, paste0("SELECT DISTINCT column_name
