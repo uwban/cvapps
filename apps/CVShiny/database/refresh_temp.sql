@@ -8,9 +8,9 @@ meddra_version text);
 
 
 INSERT INTO date_refresh.history (datintreceived, meddra_version, schema_name)
-SELECT MAX(reports_table.datintreceived), 'a_meddra', 'cv_a_date' FROM current2.reports_table;
+SELECT MAX(reports_table.datintreceived), ' v.20.1', 'cv_2017_09_30' FROM current2.reports_table;
 
-ALTER SCHEMA current2 RENAME TO  cv_a_date;
+ALTER SCHEMA current2 RENAME TO  cv_2017_09_30;
 CREATE SCHEMA IF NOT EXISTS current2;
 
 CREATE TABLE current2.active_ingredients AS SELECT * FROM remote.active_ingredients;
