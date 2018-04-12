@@ -37,10 +37,6 @@ dashboardPage(
       menuItem("Reports", tabName = "reportdata", icon = icon("hospital-o")),
       menuItem("Patients", tabName = "patientdata", icon = icon("user-md")),
       menuItem("Drugs", tabName = "drugdata", icon = icon("flask")),
-               # menuSubItem('All', tabName = 'drugdata_all'),
-               # menuSubItem('Concomitant', tabName = 'drugdata_con'),
-               # menuSubItem('Suspect', tabName = 'drugdata_sus'),
-               # menuSubItem('Drugs per Report', tabName = 'drugdata_number')),
       menuItem("Reactions", tabName = "rxndata", icon = icon("heart-o")),
       menuItem("About", tabName = "aboutinfo", icon = icon("info"), selected = TRUE),
       menuItem("Download", tabName = "download_tab", icon = icon("download"))
@@ -52,11 +48,6 @@ dashboardPage(
                      "Brand Name (Canadian Trade Name)",
                      c("Start typing to search..." = ""),
                      multiple = TRUE)),
-    # conditionalPanel(
-    #   condition = "input.name_type == 'ingredient2'",
-    #   selectizeInput("search_ing2", 
-    #                  "Active Ingredient",
-    #                  c(topings_dpd, "Start typing to search..." = ""))),
     conditionalPanel(
       condition = "input.name_type == 'ingredient'",
       selectizeInput("search_ing", 
@@ -105,7 +96,7 @@ dashboardPage(
     fluidRow(
       column(12,
              dateRangeInput('daterange', 'Select date range',
-                  format="yyyy-mm-dd",min ="1965-01-01", max = max_date, start = "2013-01-01", end = max_date ))),
+                  format="yyyy-mm-dd",min ="1965-01-01", max = max_date, start = "2000-01-01", end = max_date ))),
       # hacky way to get borders correct
     conditionalPanel(
       condition = "input.search_rxn != 'disable'",

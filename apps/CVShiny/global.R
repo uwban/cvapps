@@ -48,7 +48,7 @@ cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
 
 
 #get max date and meddra within our current schema
-meddra_and_date <- dbGetQuery(cvponl_pool, "SELECT  MAX(ref_date) AS max_date, MAX(meddra_version) AS med_version FROM date_refresh.history") 
+meddra_and_date <- dbGetQuery(cvponl_pool, "SELECT  MAX(datintreceived) AS max_date, MAX(meddra_version) AS med_version FROM date_refresh.history") 
   
 max_date <- meddra_and_date %>%
   `[[`(1)
@@ -60,7 +60,8 @@ max_meddra <- meddra_and_date %>%
 cv_reports                  <- tbl(cvponl_pool, in_schema("current2", "reports_table"))
 cv_report_drug              <- tbl(cvponl_pool, in_schema("current2", "report_drug" ))
 cv_drug_product_ingredients <- tbl(cvponl_pool, in_schema("current2", "drug_product_ingredients"))
-cv_reactions                <- tbl(cvponl_pool, in_schema("meddra", gsub('\\.', '_', max_meddra)))
+cv_meddra                <- tbl(cvponl_pool, in_schema("meddra", gsub('\\.', '_', max_meddra)))
+cv_reactions <- tbl(cvponl_pool, in_schema("current2", "reactions")) %>% left_join(cv_meddra, na_matches = 'never', by = "pt_code")
 
 
 cv_reports_temp <- cv_reports %>%
@@ -68,6 +69,7 @@ cv_reports_temp <- cv_reports %>%
 
 cv_report_drug %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
+
 
 
 #following Queries are used to generate autocomplete lists

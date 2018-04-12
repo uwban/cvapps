@@ -66,7 +66,7 @@ shinyServer(function(input, output, session) {
                  current_search$age <- input$search_age
 
                  current_search$date_range <- dateRange
-                 
+
 
                  current_search$checkbox_filter <- input$filter_over_100
                  incProgress(1/9, detail = 'Filtering Report Date Range')
@@ -85,7 +85,6 @@ shinyServer(function(input, output, session) {
                  cv_reports_filtered_ids <- cv_reports %>%
                    filter(datintreceived >= dateRange[1], datintreceived <= dateRange[2])
                  incProgress(1/9, detail = 'Filtering Seriousness Type and Gender')
-                 
                  #filter by type of adverse event if selected
                  if (current_search$seriousness_type == "Death") {cv_reports_filtered_ids %<>% filter(death == '1')}
                  else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reports_filtered_ids %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
@@ -132,6 +131,7 @@ shinyServer(function(input, output, session) {
                  incProgress(2/9, detail = 'Filtering Reactions')
                  
                  
+                 
                  cv_reactions_filtered <- cv_reactions %>% filter(pt_name_eng != "")
                  if (!is.null(current_search$rxn)) {
                    if (length(current_search$rxn) == 1) {
@@ -147,14 +147,12 @@ shinyServer(function(input, output, session) {
 
                  if (current_search$seriousness_type == "Death") {cv_reactions_filtered %<>% filter(death == '1')}
                  else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reactions_filtered %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
-  
                  
                  selected_ids$ids <-  cv_reports_filtered_ids %>%
                    semi_join(cv_report_drug_filtered, "report_id" = "report_id") %>%
                    semi_join(cv_reactions_filtered, "report_id" = "report_id") %>% as.data.frame()
                  incProgress(1/9, detail = 'Checking for no reports...')
                  n_ids <- selected_ids$ids %>% nrow()
-
                  if (n_ids == 0) {
                    setProgress(1)
                    showModal(modalDialog(
@@ -252,7 +250,7 @@ shinyServer(function(input, output, session) {
     {
       data <- semi_join(cv_reports, selected_ids$ids, by = "report_id", copy=T)
       ids <- selected_ids$ids %>% `[[`(1)
-      #data2 <-filter(cv_reports, report_id %in% ids) 
+      print('hello') 
 
     }
     else
@@ -283,14 +281,16 @@ shinyServer(function(input, output, session) {
     plottitle <- paste0("Drug Adverse Event Reports for ", drug_name, " and ", rxn_name, " (", nreports, " reports) from ",input$daterange[1], " to ",input$daterange[2])
     h3(strong(plottitle))
   })
+  
+  
   output$mychart <- renderLineChart({
-
+    
     data <- mainDataSelection()
     
-
     
+    print(Sys.time())
     dates <- data %>% select(datintreceived) %>% dplyr::summarize(date_min = min(datintreceived),
-                                                                        date_max = max(datintreceived)) %>%
+                                                                  date_max = max(datintreceived)) %>%
       as.data.frame()
     
     two_years <- 730
@@ -339,10 +339,82 @@ shinyServer(function(input, output, session) {
     
     results <- data.frame(time_p = as_date(time_list)) %>%
       left_join(results_to_be_mapped, by = 'time_p')
-
+    
     results[is.na(results)] <- 0
+    
+    print(Sys.time())
+    
     results
   })
+  
+  output$myareachart <- renderAreaChart({
+    print(Sys.time())
+    data <- mainDataSelection()
+    #DEBUG HERE
+    #data_r <- data %>% select(epoch_time = datintreceived, seriousness_eng, death) %>% collect()
+    #data_r$epoch_time <- as.integer(floor_date(as.POSIXct(data_r$epoch_time), 'month'))*1000
+    #data_r$epoch_time <- as.integer(as.POSIXct(data_r$epoch_time))*1000
+    #View(data_r)
+      
+      
+ 
+     dates <- data %>% select(datintreceived) %>% dplyr::summarize(date_min = min(datintreceived),
+                                                                         date_max = max(datintreceived)) %>%
+       as.data.frame()
+     
+     two_years <- 730
+     
+     if ((dates$date_max - dates$date_min) >= two_years) {
+       time_period <- "year"
+       time_function <- function(x) {years(x)}
+     } else {
+       time_period <- "month"
+       time_function <- function(x) {months(x)}
+     }
+     
+     data_r <- data %>% select(c(datintreceived, seriousness_eng, death)) %>%
+       dplyr::mutate(time_p = date_trunc('month', datintreceived))
+    
+    
+    total_results <- data_r %>%
+      group_by(time_p) %>%
+      dplyr::summarize(total = n())
+    
+    nonserious_results <- data_r %>%
+      filter(seriousness_eng == "No") %>%
+      group_by(time_p) %>%
+      dplyr::summarize(Nonserious = n())
+    
+    
+    serious_results <- data_r %>%
+      filter(seriousness_eng == "Yes" & (is.null(death) || death == '2')) %>%
+      group_by(time_p) %>%
+      dplyr::summarize("Serious(Excluding Death)" = n())
+    
+    
+    
+    death_results <- data_r %>%
+      filter(death == '1') %>%
+      group_by(time_p) %>%
+      dplyr::summarize(Death = n())
+    
+    
+    ntime_p <- interval(dates$date_min, dates$date_max) %/% months(1)
+    time_list <- min(dates$date_min %>% floor_date('month')) + months(0:ntime_p)
+    
+    results_to_be_mapped<- full_join(serious_results, death_results, by = 'time_p') %>%
+      full_join(nonserious_results, by = 'time_p') %>% as.data.frame() %>%
+      mutate(time_p = ymd(time_p))
+    
+    results <- data.frame(time_p = as_date(time_list)) %>%
+      left_join(results_to_be_mapped, by = 'time_p')
+
+    results[is.na(results)] <- 0
+    results$time_p <- as.integer(as.POSIXct(results$time_p))*1000
+    print(Sys.time())
+    results
+  })
+  
   
   ##### Data about Reports
   

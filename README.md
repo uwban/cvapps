@@ -1,10 +1,43 @@
 # cvapps
 
-An overview of the data framework and the applications.
+This app has been developed by the Data Sciences Unit of RMOD at Health Canada as part of the Open Data Initiative. This is a prototype experiment that utilizes publically available data (Canada Vigilance Adverse Reaction Online Database), and provide visualizations in an interactive format. Health Canada collects and maintains a high volume of adverse event reports associated with different drugs and products. This app allows users to effortlessly interact with the reports database, conduct searches and view results in highly interactive dashboards. To support innovation, coordination and to support Canadians, this interface permits the users to export search results (with no limitation to the number of rows) in various file formats such as CSV and Excel for further exploration and experimentation.
 
-Todo:
-- [ ] ensure all writes are made using hcwriter, and then grant read access to hcreader (see GPS table code)
-- [ ] ensure all reads made using hcreader, and the `pool` library?
+## Database Specifications
+
+This app is connected to a [PostgreSQL](https://www.postgresql.org/) database. A [foreign data wrapper](https://laurenz.github.io/oracle_fdw/) creates a live link from the [canada vigilance adverse reaction online oracle database](https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database.html) to the PostgreSQL database as the remote schema. This schema is copied to the current schema. This copy prevents excess demand on the foreign server and allows for cleaning and versioning of the database.
+
+## Data model
+
+######Schema: current
+Tables:
+cv_reports: reports
+Columns correspond to fields in report to canada vigilance. They contain information about patient characteristics.
+
+cv_drug_product_ingredients: drug_product_ingredients
+Columns map between drug names, product ids, and active ingredients
+
+cv_report_drug: report_drug 
+Columns correspond to fields in report to canada vigilance that record data about the specific therapy the patient was undergoing.
+
+######Schema: meddra
+Tables: Dynamically named table based on latest version in the history table of the date_refresh table. Version 20.1 will have a table name v_20_1.
+Columns contain [meddra](https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database/about-medical-dictionary-regulatory-activities-canada-vigilance-adverse-reaction-online-database.html) hierarchy, a controlled vocabulary of medical terms for regulatory purposes. 
+
+## Development
+
+- [global.R](https://github.com/hres/cvapps/blob/master/apps/CVShiny/global.R) is only run once, when the application is first hosted. This file runs all the database queries and generates the lists of search terms. The data is shared across user sessions. The database connections are handled via dbPool (https://github.com/rstudio/pool). Ergo efficiencies gained in the queries of this file will not be noticed by users.
+
+- [server.R](https://github.com/hres/cvapps/blob/master/apps/CVShiny/server.R) filters reports data to get a list of report_ids that map to the specified search terms. This list of report ids is then joined with other tables for the selected visualizations and are counted and then passed back to ui.R
+
+- [ui.R](https://github.com/hres/cvapps/blob/master/apps/CVShiny/ui.R) passes search terms to backend and specifies layout of application. linechart.R formats data for linechartbindings.js, which has functions for the [nvd3](http://nvd3.org/index.html) javascript library
+         
+## Refresh 
+
+(database/refresh.sh)[https://google.ca] is scheduled with cron on the server shiny.hres.ca to detect the most recent datintreceived entry in the reports table of the remote schema. If it does not match the most recent entry in the corresponding table of the current schema, a refresh is triggered. 
+A refresh inserts a new entry into the history table of the date_refresh schema before the name of the current schema is changed to a date format: cv_YYYY_MM_DD for versioning purposes. The current schema is then regenerated from the new remote schema by creating a duplicate table of each remote table and indexing every column of the tables used by the app. The data in the reports table is cleaned to have an appropriate age group.
+Out of date meddra is also detected and reported.
+
+
 
 ## Fetching the data ([data_import](data_import))
 > (data source) -> Postgres DB
