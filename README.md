@@ -4,7 +4,7 @@ This app has been developed by the Data Sciences Unit of RMOD at Health Canada a
 
 ## Database Specifications
 
-This app is connected to a [PostgreSQL] (https://www.postgresql.org/) database. A [foreign data wrapper](https://laurenz.github.io/oracle_fdw/) creates a live link from the [canada vigilance adverse reaction online oracle database](https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database.html) to the PostgreSQL database as the remote schema. This schema is copied to the current schema. This copy prevents excess demand on the foreign server and allows for cleaning and versioning of the database.
+This app is connected to a [PostgreSQL](https://www.postgresql.org/) database. A [foreign data wrapper](https://laurenz.github.io/oracle_fdw/) creates a live link from the [canada vigilance adverse reaction online oracle database](https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database.html) to the PostgreSQL database as the remote schema. This schema is copied to the current schema. This copy prevents excess demand on the foreign server and allows for cleaning and versioning of the database.
 
 ## Data model
 
@@ -34,7 +34,7 @@ Columns contain [meddra](https://www.canada.ca/en/health-canada/services/drugs-h
 ## Refresh 
 
 (database/refresh.sh)[https://google.ca] is scheduled with cron on the server shiny.hres.ca to detect the most recent datintreceived entry in the reports table of the remote schema. If it does not match the most recent entry in the corresponding table of the current schema, a refresh is triggered. 
-A refresh inserts a new entry into the history table of the date_refresh schema before the name of the current schema is changed to a date format: cv_DD_MM_YYYY for versioning purposes. The current schema is then regenerated from the new remote schema by creating a duplicate table of each remote table and indexing every column of the tables used by the app. The data in the reports table is cleaned to have an appropriate age group.
+A refresh inserts a new entry into the history table of the date_refresh schema before the name of the current schema is changed to a date format: cv_YYYY_MM_DD for versioning purposes. The current schema is then regenerated from the new remote schema by creating a duplicate table of each remote table and indexing every column of the tables used by the app. The data in the reports table is cleaned to have an appropriate age group.
 Out of date meddra is also detected and reported.
 
 

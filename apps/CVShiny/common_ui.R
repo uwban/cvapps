@@ -123,21 +123,28 @@ aboutAuthors <- function() {list(
       "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
       "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
       "bclaught@uwaterloo.ca",
-      width = 4
+      width = 3
     ),
     box(
       "Nanqing Zhu, MSc (in progress)", br(),
       "Jr. Data Scientist, Health Products and Food Branch", br(),
       "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
       "nanqing.zhu@mail.mcgill.ca",
-      width = 4
+      width = 3
     ),
     box(
       "Jason Jiang, BSc (in progress)", br(),
       "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
       "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
       "haiyangj@sfu.ca",
-      width = 4
+      width = 3
+    ),
+    box(
+      "James Hopkins, BSc", br(),
+      "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
+      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
+      "jehopkin@sfu.ca",
+      width = 3
     )
   )
 )}

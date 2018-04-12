@@ -115,9 +115,7 @@ age_group_clean <- function(cv_reports){
            ifelse(age_y > 65, "Elderly", age_group_eng ))))))))
 }
 
-date_clean <- function(cv_reports){
-  
-}
+
 
 #get the file name of most recent meddra folder. Should be in the form /home/shared/MedDRA/meddra_20_1_english
 #parses the version number v.20.1 from the filename
@@ -177,11 +175,11 @@ meddra_make <- function(meddra_list, con){
   
 
   #get table to with soc_code to join with final_table (complete map)
-  reactions_soc <- dbGetQuery(cvponl_write, "SELECT reaction_id, report_id, pt_code, pt_name_eng, pt_name_fr, soc_code, soc_name_fr, soc_name_eng FROM current.reactions") %>%
+  reactions_soc <- dbGetQuery(cvponl_write, "SELECT reaction_id, report_id, pt_code, pt_name_eng, pt_name_fr, soc_code, soc_name_fr, soc_name_eng FROM remote.reactions") %>%
     left_join(final_table, na_matches = 'never', by = "pt_code") 
   
-  #upload table
-  dbWriteTable(cvponl_write,  c("meddra", meddra_list[4]), reactions_soc, overwrite = FALSE, temporary = FALSE, row.names = FALSE)
+  #upload table (recently changed from reactions_soc to final_table)
+  dbWriteTable(cvponl_write,  c("meddra", meddra_list[4]), final_table, overwrite = FALSE, temporary = FALSE, row.names = FALSE)
   #create indices for values used later: this might not be a complete list
   dbGetQuery(con, paste0("CREATE INDEX ON  meddra.", meddra_list[4], " (report_id)"))
   dbGetQuery(con, paste0("CREATE INDEX ON meddra.", meddra_list[4], " (smq_name)"))
@@ -201,7 +199,7 @@ date_update <- function(max_date, con){
   
   dbGetQuery(con, "CREATE SCHEMA IF NOT EXISTS date_refresh")
   
-  history_table <- data.frame(ref_date=max_date,
+  history_table <- data.frame(datintreceivede=max_date,
                               schema=schema_name,
                               meddra_version=meddra_version,
                               stringsAsFactors = FALSE)
@@ -222,7 +220,7 @@ dateCheck <- function() {
     `[[`(1)
   
   current_date <- dbGetQuery(cvponl_pool, "SELECT * FROM date_refresh.history") %>%
-    dplyr::summarize(max_date = max(ref_date)) %>%
+    dplyr::summarize(max_date = max(datintreceived)) %>%
     `[[`(1) 
   
   if (current_date >= remote_date){
@@ -252,7 +250,7 @@ refresh <- function() {
   
   #get the date from the refresh tracking schema
   current_date <- dbGetQuery(cvponl_write, "SELECT * FROM date_refresh.history") %>%
-    dplyr::summarize(max_date = max(ref_date)) %>%
+    dplyr::summarize(max_date = max(datintreceived)) %>%
     `[[`(1) 
   
   #get the most recent date of a report published in remote schema
@@ -266,6 +264,8 @@ refresh <- function() {
   
   #if there has been an update to remote schema
   if(current_date != remote_date){
+    
+    
     schema_new <- date_update(current_date, cvponl_write)
     
     dbGetQuery(cvponl_write, paste0("ALTER SCHEMA current2 RENAME TO ", schema_new))
@@ -285,7 +285,10 @@ refresh <- function() {
     #applies each query
     lapply(query_list, dbGetQuery, con=cvponl_write)
     
-    reports <- dbGetQuery(cvponl_write, "SELECT * FROM remote.reports")
+    #Edit reports table
+    reports <- dbGetQuery(cvponl_write, "SELECT * FROM remote.reports") %>% 
+      
+    #repoorts <- reports %>% mutate(milli_time = as.integer(as.POSIXct(datintreceived))*1000)
     updated_reports <- age_group_clean(reports)
     
   
