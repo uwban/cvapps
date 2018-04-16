@@ -9,35 +9,50 @@ This app is connected to a [PostgreSQL](https://www.postgresql.org/) database. A
 ## Data model
 
 ######Schema: current
+
 Tables:
 cv_reports: reports
 Columns correspond to fields in report to canada vigilance. They contain information about patient characteristics.
+Joins current.report_drug and current.reactions by report_id.
 
 cv_drug_product_ingredients: drug_product_ingredients
-Columns map between drug names, product ids, and active ingredients
+Columns map between drug names, product ids, and active ingredients.
+Joins current.report_drug by drug_product_id.
 
 cv_report_drug: report_drug 
 Columns correspond to fields in report to canada vigilance that record data about the specific therapy the patient was undergoing.
+Joins current.reactions, and current.reports by report_id.
+Joins current.drug_product_ingredients by drug_product_id.
+
+cv_reactions: reactions
+Columns are fields in canada vigilance reports that detail the reaction had by the patient. Maps meddra terms to report_id.
+Joins meddra.version by pt_code.
+Joins current.reports by report_id.
 
 ######Schema: meddra
+
 Tables: Dynamically named table based on latest version in the history table of the date_refresh table. Version 20.1 will have a table name v_20_1.
-Columns contain [meddra](https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database/about-medical-dictionary-regulatory-activities-canada-vigilance-adverse-reaction-online-database.html) hierarchy, a controlled vocabulary of medical terms for regulatory purposes. 
+Columns contain [meddra](https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database/about-medical-dictionary-regulatory-activities-canada-vigilance-adverse-reaction-online-database.html) hierarchy, a controlled vocabulary of medical terms for regulatory purposes.
+Joins current.reactions by pt_code.
+
 
 ## Development
 
-- [global.R](https://github.com/hres/cvapps/blob/master/apps/CVShiny/global.R) is only run once, when the application is first hosted. This file runs all the database queries and generates the lists of search terms. The data is shared across user sessions. The database connections are handled via dbPool (https://github.com/rstudio/pool). Ergo efficiencies gained in the queries of this file will not be noticed by users.
+- [global.R](apps/CVShiny/global.R) is only run once, when the application is first hosted. This file runs all the database queries and generates the lists of search terms. The data is shared across user sessions. The database connections are handled via dbPool (https://github.com/rstudio/pool). Ergo efficiencies gained in the queries of this file will not be noticed by users.
 
-- [server.R](https://github.com/hres/cvapps/blob/master/apps/CVShiny/server.R) filters reports data to get a list of report_ids that map to the specified search terms. This list of report ids is then joined with other tables for the selected visualizations and are counted and then passed back to ui.R
+- [server.R](apps/CVShiny/server.R) filters reports data to get a list of report_ids that map to the specified search terms. This list of report ids is then joined with other tables for the selected visualizations and are counted and then passed back to ui.R
 
-- [ui.R](https://github.com/hres/cvapps/blob/master/apps/CVShiny/ui.R) passes search terms to backend and specifies layout of application. linechart.R formats data for linechartbindings.js, which has functions for the [nvd3](http://nvd3.org/index.html) javascript library
+- [ui.R](apps/CVShiny/ui.R) passes search terms to backend and specifies layout of application. linechart.R formats data for linechartbindings.js, which has functions for the [nvd3](http://nvd3.org/index.html) javascript library.
          
 ## Refresh 
 
-(database/refresh.sh)[https://google.ca] is scheduled with cron on the server shiny.hres.ca to detect the most recent datintreceived entry in the reports table of the remote schema. If it does not match the most recent entry in the corresponding table of the current schema, a refresh is triggered. 
+(apps/CVShiny/database/refresh.sh)[apps/CVShiny/database/refresh.sh] is scheduled with cron on the server shiny.hres.ca to detect the most recent datintreceived entry in the reports table of the remote schema. If it does not match the most recent entry in the corresponding table of the current schema, a refresh is triggered. 
 A refresh inserts a new entry into the history table of the date_refresh schema before the name of the current schema is changed to a date format: cv_YYYY_MM_DD for versioning purposes. The current schema is then regenerated from the new remote schema by creating a duplicate table of each remote table and indexing every column of the tables used by the app. The data in the reports table is cleaned to have an appropriate age group.
 Out of date meddra is also detected and reported.
 
-
+## Rollback
+(apps/CVShiny/database/rollback.sh)[apps/CVShiny/database/rollback.sh] in the case that the refresh fails and the previous version of the database is desired run
+> bash /rollback.sh
 
 ## Fetching the data ([data_import](data_import))
 > (data source) -> Postgres DB

@@ -35,7 +35,8 @@ options(shiny.trace=TRUE)
 ########## Codes to fetch top 1000 specific results to be used in dropdown menu ############### 
 # Temperary solution: fetch all tables to local and run functions on them
 
-
+print('start of global')
+print(Sys.time())
 
 
 #create a connection pool: insert relevant password and username
@@ -57,18 +58,18 @@ max_meddra <- meddra_and_date %>%
   `[[`(2) 
 
 
-cv_reports                  <- tbl(cvponl_pool, in_schema("current2", "reports_table"))
-cv_report_drug              <- tbl(cvponl_pool, in_schema("current2", "report_drug" ))
-cv_drug_product_ingredients <- tbl(cvponl_pool, in_schema("current2", "drug_product_ingredients"))
-cv_meddra                <- tbl(cvponl_pool, in_schema("meddra", gsub('\\.', '_', max_meddra)))
-cv_reactions <- tbl(cvponl_pool, in_schema("current2", "reactions")) %>% left_join(cv_meddra, na_matches = 'never', by = "pt_code")
+cv_reports                  <- tbl(cvponl_pool, in_schema("current2", "reports_table")) %>% select(c(report_id, death, seriousness_eng, gender_eng, age_y, datintreceived)) %>% collect()
+cv_report_drug              <- tbl(cvponl_pool, in_schema("current2", "report_drug" )) %>% select(c(drugname, drug_product_id, druginvolv_eng, report_id))    %>% collect()
+cv_drug_product_ingredients <- tbl(cvponl_pool, in_schema("current2", "drug_product_ingredients")) %>% collect()
+cv_meddra                   <- tbl(cvponl_pool, in_schema("meddra", gsub('\\.', '_', max_meddra))) %>% collect()
+cv_reactions                <- tbl(cvponl_pool, in_schema("current2", "reactions")) %>% collect() %>% left_join(cv_meddra, na_matches = 'never', by = "pt_code")
 
 
 cv_reports_temp <- cv_reports %>%
   select(report_id, seriousness_eng, death)
 
 cv_report_drug %<>% left_join(cv_reports_temp, "report_id" = "report_id")
-cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
+cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id") 
 
 
 
@@ -78,13 +79,13 @@ cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 directory <- getwd()
 
 #read feather files for autocomplete lists
-topbrands <- read_feather(paste0(directory, '/feather_files/topbrands.feather')) %>%
+topbrands   <- read_feather(paste0(directory, '/feather_files/topbrands.feather')) %>%
   `[[`(1)
-topings_cv <- read_feather(paste0(directory, '/feather_files/topings_cv.feather'))%>%
+topings_cv  <- read_feather(paste0(directory, '/feather_files/topings_cv.feather'))%>%
   `[[`(1)
 smq_choices <- read_feather(paste0(directory, '/feather_files/smq_choices.feather'))%>%
   `[[`(1)
-pt_choices <- read_feather(paste0(directory, '/feather_files/pt_choices.feather'))%>%
+pt_choices  <- read_feather(paste0(directory, '/feather_files/pt_choices.feather'))%>%
   `[[`(1)
 soc_choices <- read_feather(paste0(directory, '/feather_files/soc_choices.feather'))%>%
   `[[`(1)
