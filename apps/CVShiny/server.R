@@ -286,7 +286,7 @@ shinyServer(function(input, output, session) {
   })
   
   
-  output$mylinechart <- renderLineChart({
+  output$mychart <- renderLineChart({
     
     data <- mainDataSelection()
     
@@ -350,7 +350,7 @@ shinyServer(function(input, output, session) {
     results
   })
   
-  output$mychart <- renderAreaChart({
+  output$myareachart <- renderAreaChart({
     print(Sys.time())
     data <- mainDataSelection()
     #DEBUG HERE
