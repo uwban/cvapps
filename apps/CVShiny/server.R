@@ -307,7 +307,7 @@ shinyServer(function(input, output, session) {
     }
     
     data_r <- data %>% select(c(datintreceived, seriousness_eng, death)) %>%
-      dplyr::mutate(time_p = as.Date(trunc.POSIXt(datintreceived, units = time_period)))
+      dplyr::mutate(time_p = as.Date(Hmsic::trunc.POSIXt(datintreceived, units = time_period)))
     
     
     total_results <- data_r %>%
