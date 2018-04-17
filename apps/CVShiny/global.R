@@ -58,8 +58,8 @@ max_meddra <- meddra_and_date %>%
   `[[`(2) 
 
 
-cv_reports                  <- tbl(cvponl_pool, in_schema("current2", "reports_table")) %>% select(c(report_id, death, seriousness_eng, gender_eng, age_y, datintreceived)) %>% collect()
-cv_report_drug              <- tbl(cvponl_pool, in_schema("current2", "report_drug" )) %>% select(c(drugname, drug_product_id, druginvolv_eng, report_id))    %>% collect()
+cv_reports                  <- tbl(cvponl_pool, in_schema("current2", "reports_table")) %>% collect()
+cv_report_drug              <- tbl(cvponl_pool, in_schema("current2", "report_drug" ))   %>% collect()
 cv_drug_product_ingredients <- tbl(cvponl_pool, in_schema("current2", "drug_product_ingredients")) %>% collect()
 cv_meddra                   <- tbl(cvponl_pool, in_schema("meddra", gsub('\\.', '_', max_meddra))) %>% collect()
 cv_reactions                <- tbl(cvponl_pool, in_schema("current2", "reactions")) %>% collect() %>% left_join(cv_meddra, na_matches = 'never', by = "pt_code")
