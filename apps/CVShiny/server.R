@@ -92,17 +92,19 @@ shinyServer(function(input, output, session) {
                  #filter by type of adverse event if selected
                  if (current_search$seriousness_type == "Death") {cv_reports_filtered_ids %<>% filter(death == '1')}
                  else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reports_filtered_ids %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
-                  
+
                  #filter by gender if selected
                  if (current_search$gender == 'Male' | current_search$gender == 'Female') {
                     cv_reports_filtered_ids %<>% filter(gender_eng == current_search$gender)
                   }
                  incProgress(1/9, detail = 'Applying Age Constraints')
                  
-                 if (current_search$checkbox_filter & current_search$age[2] == 100) {
-                    cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1])
-                 } else {
-                   cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1] & age_y <= current_search$age[2])
+                 if(!current_search$checkbox_filter){
+                     if (current_search$checkbox_filter & current_search$age[2] == 100) {
+                        cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1])
+                     } else {
+                           cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1] & age_y <= current_search$age[2])
+                     }
                  }
                  cv_reports_filtered_ids %<>% select(report_id)
                  
@@ -151,7 +153,6 @@ shinyServer(function(input, output, session) {
                    if (length(current_search$soc) == 1) cv_reactions_filtered %<>% filter(soc_name_eng == current_search$soc)
                    else cv_reactions_filtered %<>% filter(soc_name_eng %in% current_search$soc)
                  }
-
                  if (current_search$seriousness_type == "Death") {cv_reactions_filtered %<>% filter(death == '1')}
                  else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reactions_filtered %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
                  selected_ids$ids <-  cv_reports_filtered_ids %>%
