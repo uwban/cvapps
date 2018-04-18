@@ -51,7 +51,6 @@ shinyServer(function(input, output, session) {
                  dateRange <- c(startDate, endDate)
                  dateRange1 <- dateRange
                  #search variables
-                 View(dateRange1)
 
                  current_search$name_type <- input$name_type
    
@@ -86,8 +85,6 @@ shinyServer(function(input, output, session) {
                  startDate <- input$daterange[1] %>% ymd(tz = 'EST') %>% floor_date(unit="month")
                  endDate <- endDate %>% ymd(tz = 'EST') #%>% floor_date(unit="month")
                  dateRange <- c(startDate, endDate)
-                 View(dateRange)
-                 #View(cv_reports)
                  #first filter by date
                  cv_reports_filtered_ids <- cv_reports %>%
                     filter(datintreceived >= dateRange[1], datintreceived <= dateRange[2])
