@@ -54,6 +54,9 @@ meddra_and_date <- dbGetQuery(cvponl_pool, "SELECT  MAX(datintreceived) AS max_d
 max_date <- meddra_and_date %>%
   `[[`(1)
 
+print('max_date')
+print(max_date)
+
 max_meddra <- meddra_and_date %>%
   `[[`(2) 
 

@@ -44,11 +44,15 @@ shinyServer(function(input, output, session) {
                  } else {
                    name <- input$search_ing2
                  }
-                 
+                 print(input$daterange[1])
+                 print(input$daterange[2])
                  startDate <- input$daterange[1] %>% ymd(tz = 'EST')
                  endDate <- input$daterange[2] %>% ymd(tz = 'EST')
                  dateRange <- c(startDate, endDate)
+                 dateRange1 <- dateRange
                  #search variables
+                 View(dateRange1)
+
                  current_search$name_type <- input$name_type
    
                  current_search$name <- name
@@ -80,25 +84,26 @@ shinyServer(function(input, output, session) {
                    endDate = input$daterange[2] + month(1)
                  }
                  startDate <- input$daterange[1] %>% ymd(tz = 'EST') %>% floor_date(unit="month")
-                 endDate <- endDate %>% ymd(tz = 'EST') %>% floor_date(unit="month")
+                 endDate <- endDate %>% ymd(tz = 'EST') #%>% floor_date(unit="month")
                  dateRange <- c(startDate, endDate)
+                 View(dateRange)
                  #View(cv_reports)
                  #first filter by date
                  cv_reports_filtered_ids <- cv_reports %>%
-                   filter(datintreceived >= dateRange[1], datintreceived <= dateRange[2])
+                    filter(datintreceived >= dateRange[1], datintreceived <= dateRange[2])
                  incProgress(1/9, detail = 'Filtering Seriousness Type and Gender')
                  #filter by type of adverse event if selected
                  if (current_search$seriousness_type == "Death") {cv_reports_filtered_ids %<>% filter(death == '1')}
                  else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reports_filtered_ids %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
-                 
+                  
                  #filter by gender if selected
                  if (current_search$gender == 'Male' | current_search$gender == 'Female') {
-                   cv_reports_filtered_ids %<>% filter(gender_eng == current_search$gender)
-                 }
+                    cv_reports_filtered_ids %<>% filter(gender_eng == current_search$gender)
+                  }
                  incProgress(1/9, detail = 'Applying Age Constraints')
                  
                  if (current_search$checkbox_filter & current_search$age[2] == 100) {
-                   cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1])
+                    cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1])
                  } else {
                    cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1] & age_y <= current_search$age[2])
                  }
