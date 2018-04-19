@@ -73,7 +73,9 @@ shinyServer(function(input, output, session) {
                  print(Sys.time())
              
                  
-                 current_search$checkbox_filter <- input$filter_over_100
+                 current_search$age_unknown <- input$filter_unknown_age
+                 current_search$age_estimate <- input$filter_estimates_age
+                 
                  incProgress(1/9, detail = 'Filtering Report Date Range')
                  
 
@@ -99,12 +101,22 @@ shinyServer(function(input, output, session) {
                   }
                  incProgress(1/9, detail = 'Applying Age Constraints')
                  
-                 if(!current_search$checkbox_filter){
-                     if (current_search$checkbox_filter & current_search$age[2] == 100) {
+                 #if no estimates or unknown ages wanted
+                 if(!input$filter_unknown_age & !input$filter_estimates_age){
+                     #if ages bounded by 125 only use age[1] to save time
+                     if (current_search$age[2] == 125) {
                         cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1])
                      } else {
                            cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1] & age_y <= current_search$age[2])
                      }
+                 }
+                 else if (input$filter_estimates_age & !input$filter_unknown_age){
+                  #use age_y_clean when estimates are allowed, don't filter at all when unknown are allowed
+                     if (current_search$age[2] == 125) {
+                         cv_reports_filtered_ids %<>% filter(age_y_clean >= current_search$age[1])
+                   } else {
+                         cv_reports_filtered_ids %<>% filter(age_y_clean >= current_search$age[1] & age_y_clean <= current_search$age[2])
+                   }
                  }
                  cv_reports_filtered_ids %<>% select(report_id)
                  

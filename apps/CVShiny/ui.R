@@ -28,7 +28,7 @@ bootstrapPage(
   hidden(
   div(id="main-content",
 dashboardPage(
-  dashboardHeader(title = titleWarning("CV Shiny (v0.23)"),
+  dashboardHeader(title = titleWarning("CV Shiny (v0.25)"),
                   titleWidth = 700),
   
   dashboardSidebar(
@@ -72,13 +72,19 @@ dashboardPage(
     sliderInput("search_age",
                 "Set Age Range",
                 min = 0,
-                max = 100,
-                value = c(0,100)),
-    conditionalPanel(
-      condition = "input.search_age[1] == 100",
-      checkboxInput("filter_over_100",
-                    "Include results over 100?",
-                    value = TRUE)),
+                max = 125,
+                value = c(0,125)),
+    div(style="display: inline-block; width: 49%;",
+        checkboxInput("filter_estimates_age",
+                      "Age estimates?",
+                       value = TRUE)),
+    div(style="display: inline-block; width: 50%;",
+        conditionalPanel(
+          condition = "input.filter_estimates_age",
+          checkboxInput("filter_unknown_age",
+                    "Unknown age?",
+                    value = TRUE))),
+
     selectInput("search_gender",
                 "Select Gender",
                 c("All",
