@@ -43,7 +43,7 @@ remote_date=$(sed -n '3p' remote_date.tmp)
 current_date=$(sed -n '3p' current_date.tmp)
 
 #if the remote date doesn't match execute refresh
-if [ "$remote_date" == "$current_date" ]
+if [ "$remote_date" != "$current_date" ]
    then
        #get the current meddra version
        psql \
