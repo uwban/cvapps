@@ -103,8 +103,8 @@ shinyServer(function(input, output, session) {
                  
                  #if no estimates or unknown ages wanted
                  if(!input$filter_unknown_age & !input$filter_estimates_age){
-                     #if ages bounded by 125 only use age[1] to save time
-                     if (current_search$age[2] == 125) {
+                      #if ages bounded by 125 only use age[1] to save time
+                      if (current_search$age[2] == 125) {
                         cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1])
                      } else {
                            cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1] & age_y <= current_search$age[2])
@@ -128,7 +128,7 @@ shinyServer(function(input, output, session) {
                    
                    incProgress(1/9, detail = 'Filtering by Brand')
                    
-                   #this is currently dead code
+                 #this is currently dead code
                  } else if (current_search$name_type == "ingredient2" & !is.null(current_search$name) && current_search$name != "") {
                    related_drugs <- cv_substances %>% filter(ing == current_search$name)
                    cv_report_drug_filtered %<>% semi_join(related_drugs, by = "drugname")
@@ -239,7 +239,8 @@ shinyServer(function(input, output, session) {
   ##### Construct Current_Query_Table for generic name, brand name, adverse reaction term & date range searched
   output$current_search <- renderTable({
     data <- current_search
-    result <- data.frame(names = c("Name Type:",
+    result <- data.frame(
+      names = c("Name Type:",
                                    "Age Range:",
                                    "Gender:",
                                    "Name:",
@@ -247,8 +248,8 @@ shinyServer(function(input, output, session) {
                                    "System Organ Class:",
                                    "Seriousness:",
                                    "Date Range:"),
-                         values = c(data$name_type %>% toupper(),
-                                    sprintf("%s to %s%s", data$age[1], data$age[2], ifelse(data$checkbox_filter & data$age[2] == 100, '+', '')),
+      values = c(data$name_type %>% toupper(),
+                                    paste(data$age[1], 'to', data$age[2], 'including', ifelse(data$filter_estimates_age, 'estimates', ''), ifelse(data$filter_unknown_age, ' and unknowns', '')),
                                     data$gender,
                                     paste0(data$name, collapse = ", "),
                                     paste0(data$rxn, collapse = ", "),
@@ -256,6 +257,7 @@ shinyServer(function(input, output, session) {
                                     paste0(data$seriousness_type, collapse = ", "),
                                     paste(data$date_range, collapse = " to ")),
                          stringsAsFactors = FALSE)
+    
     result$values["" == result$values] <- "Not Specified"
     result
   },
