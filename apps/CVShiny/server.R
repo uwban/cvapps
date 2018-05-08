@@ -92,9 +92,13 @@ shinyServer(function(input, output, session) {
                     filter(datintreceived >= dateRange[1], datintreceived <= dateRange[2])
                  incProgress(1/9, detail = 'Filtering Seriousness Type and Gender')
                  #filter by type of adverse event if selected
+        
                  if (current_search$seriousness_type == "Death") {cv_reports_filtered_ids %<>% filter(death == '1')}
-                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reports_filtered_ids %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
-
+                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {
+                    cv_reports_filtered_ids %<>% filter(seriousness_eng == "Yes" & (is.na(death) | death != '1'))}
+                 
+                 test <- cv_reports_filtered_ids %>% select(death, seriousness_eng, report_id)
+                 View(test)
                  #filter by gender if selected
                  if (current_search$gender == 'Male' | current_search$gender == 'Female') {
                     cv_reports_filtered_ids %<>% filter(gender_eng == current_search$gender)
@@ -123,7 +127,7 @@ shinyServer(function(input, output, session) {
                  }
                  cv_reports_filtered_ids %<>% select(report_id)
                  
-                 
+
                  cv_report_drug_filtered <- cv_report_drug
                  if (current_search$name_type == "brand" & !is.null(current_search$name)) {
                    if (length(current_search$name) == 1) cv_report_drug_filtered %<>% filter(drugname == current_search$name)
@@ -150,7 +154,11 @@ shinyServer(function(input, output, session) {
                    }
                  if (current_search$seriousness_type == "Death") {
                    cv_report_drug_filtered %<>% filter(death == '1') }
-                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_report_drug_filtered %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
+                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {
+                   cv_report_drug_filtered %<>% filter(seriousness_eng == "Yes" & (is.na(death) | death != '1'))}
+                 
+                 test2 <- cv_report_drug_filtered %>% select(death, seriousness_eng, report_id)
+                 View(test2)
                  
                  incProgress(2/9, detail = 'Filtering Reactions')
                  
@@ -168,8 +176,12 @@ shinyServer(function(input, output, session) {
                    if (length(current_search$soc) == 1) cv_reactions_filtered %<>% filter(soc_name_eng == current_search$soc)
                    else cv_reactions_filtered %<>% filter(soc_name_eng %in% current_search$soc)
                  }
-                 if (current_search$seriousness_type == "Death") {cv_reactions_filtered %<>% filter(death == '1')}
-                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reactions_filtered %<>% filter(seriousness_eng == 'Yes') %<>% filter(is.null(death) || death == 2)}
+                 #if (current_search$seriousness_type == "Death") {cv_reactions_filtered %<>% filter(death == '1')}
+                 #else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reactions_filtered %<>% filter(seriousness_eng == "Yes" & (is.na(death) || death == '2'))}
+                 
+                 #test3 <- cv_reactions_filtered %>% select(death, seriousness_eng, report_id)
+                 #View(test3)
+                 
                  selected_ids$ids <-  cv_reports_filtered_ids %>%
                    semi_join(cv_report_drug_filtered, "report_id" = "report_id") %>%
                    semi_join(cv_reactions_filtered, "report_id" = "report_id") %>% as.data.frame()
@@ -350,7 +362,7 @@ shinyServer(function(input, output, session) {
     
     
     serious_results <- data_r %>%
-      filter(seriousness_eng == "Yes" & (is.na(death) || death == '2')) %>%
+      filter(seriousness_eng == "Yes" & (is.na(death) | death == '2')) %>%
       group_by(time_p) %>%
       dplyr::summarize("Serious(Excluding Death)" = n())
     
@@ -382,12 +394,6 @@ shinyServer(function(input, output, session) {
   output$myareachart <- renderAreaChart({
     print(Sys.time())
     data <- mainDataSelection()
-    #DEBUG HERE
-    #data_r <- data %>% select(epoch_time = datintreceived, seriousness_eng, death) %>% collect()
-    #data_r$epoch_time <- as.integer(floor_date(as.POSIXct(data_r$epoch_time), 'month'))*1000
-    #data_r$epoch_time <- as.integer(as.POSIXct(data_r$epoch_time))*1000
-    #View(data_r)
-      
       
  
      dates <- data %>% select(datintreceived) %>% dplyr::summarize(date_min = min(datintreceived),
@@ -419,7 +425,7 @@ shinyServer(function(input, output, session) {
     
     
     serious_results <- data_r %>%
-      filter(seriousness_eng == "Yes" & (is.na(death) || death == '2')) %>%
+      filter(seriousness_eng == "Yes" & (is.na(death) | death == '2')) %>%
       group_by(time_p) %>%
       dplyr::summarize("Serious(Excluding Death)" = n())
     

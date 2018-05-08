@@ -48,7 +48,6 @@ renderLineChart <- function(expr, env=parent.frame(), quoted=FALSE) {
   # function called `func`. It's needed for the RStudio IDE's built-in
   # debugger to work properly on the expression.
   installExprFunction(expr, "func", env, quoted)
-  print('help')
   function() {
     df <- func()
     dataframe_month <- df[, 1]
