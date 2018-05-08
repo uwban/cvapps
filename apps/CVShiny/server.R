@@ -61,6 +61,7 @@ shinyServer(function(input, output, session) {
                  current_search$seriousness_type <- input$seriousness_type
 
                  current_search$rxn <- input$search_rxn
+                 
 
                  current_search$gender <- input$search_gender
 
@@ -73,7 +74,6 @@ shinyServer(function(input, output, session) {
                  print(Sys.time())
              
                  
-                 current_search$age_unknown <- input$filter_unknown_age
                  current_search$age_estimate <- input$filter_estimates_age
                  
                  incProgress(1/9, detail = 'Filtering Report Date Range')
@@ -84,7 +84,7 @@ shinyServer(function(input, output, session) {
                  {
                    endDate = input$daterange[2] + month(1)
                  }
-                 startDate <- input$daterange[1] %>% ymd(tz = 'EST') %>% floor_date(unit="month")
+                 startDate <- input$daterange[1] %>% ymd(tz = 'EST') #%>% floor_date(unit="month")
                  endDate <- endDate %>% ymd(tz = 'EST') #%>% floor_date(unit="month")
                  dateRange <- c(startDate, endDate)
                  #first filter by date
@@ -101,17 +101,20 @@ shinyServer(function(input, output, session) {
                   }
                  incProgress(1/9, detail = 'Applying Age Constraints')
                  
+
                  #if no estimates or unknown ages wanted
-                 if(!input$filter_unknown_age & !input$filter_estimates_age){
+                 if((current_search$age[1] != 0 | current_search$age[2] != 125) & !input$filter_estimates_age){
                       #if ages bounded by 125 only use age[1] to save time
+                      print('entered if 1')
                       if (current_search$age[2] == 125) {
                         cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1])
                      } else {
                            cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1] & age_y <= current_search$age[2])
                      }
                  }
-                 else if (input$filter_estimates_age & !input$filter_unknown_age){
+                 else if ((current_search$age[1] != 0 |current_search$age[2] != 125) & input$filter_estimates_age){ #input$filter_estimates_age & !input$filter_unknown_age){
                   #use age_y_clean when estimates are allowed, don't filter at all when unknown are allowed
+                     print('entered if 2')
                      if (current_search$age[2] == 125) {
                          cv_reports_filtered_ids %<>% filter(age_y_clean >= current_search$age[1])
                    } else {
@@ -249,7 +252,7 @@ shinyServer(function(input, output, session) {
                                    "Seriousness:",
                                    "Date Range:"),
       values = c(data$name_type %>% toupper(),
-                                    paste(data$age[1], 'to', data$age[2], 'including', ifelse(data$filter_estimates_age, 'estimates', ''), ifelse(data$filter_unknown_age, ' and unknowns', '')),
+                                    paste(data$age[1], 'to', data$age[2], 'including', ifelse(data$filter_estimates_age, 'estimates', '')),
                                     data$gender,
                                     paste0(data$name, collapse = ", "),
                                     paste0(data$rxn, collapse = ", "),
@@ -294,13 +297,22 @@ shinyServer(function(input, output, session) {
       tally() %>%
       as.data.frame()
     drug_name <- paste0(current_search$name, collapse = ", ")
-    rxn_name <- paste0(current_search$rxn, collapse = ", ")
-    
+    rxn <- paste0(current_search$rxn, collapse = ", ")
+    soc <- paste0(current_search$soc, collapse = ", ")
+    print(rxn)
+    print(soc)
     if ("" == drug_name) drug_name <- "All Drugs"
-    if ("" == rxn_name) rxn_name <- "All Reactions"
+    if ("" == rxn) rxn_name <- "All Reactions"
+    else rxn_name <- rxn
+    if ("" != soc & rxn == ""){ 
+      rxn_name <- soc
+    }else if("" != soc & rxn != ""){
+      rxn_name <- paste(rxn, ', ', soc)
+    }
+    
     plottitle <- paste0("Drug Adverse Event Reports for ", drug_name, " and ", rxn_name, " (", nreports, " reports) from ",input$daterange[1], " to ",input$daterange[2])
     h3(strong(plottitle))
-  })
+    })
   
   
   output$mychart <- renderLineChart({
@@ -829,17 +841,21 @@ shinyServer(function(input, output, session) {
       arrange(n) %>%
       as.data.frame() %>%
       mutate(`Number of Drugs` = as.factor(n),
-             `Number of Drugs in Report` = nn) %>%
+             `Number of Reports` = nn) %>%
       select(-c(n,nn))
   })
   
   output$drugcount_plot <- renderGvis({
     # the top drugs reported here might be influenced by such drug is originally most reported among all reports
-    gvisColumnChart(drugcount_data(), 'Number of Drugs', "Number of Drugs in Report", options = list(
+    data<- drugcount_data()
+    data["Number of Drugs"] <- lapply(data, function(x) paste("Number of Drugs:", x))
+ 
+    
+    gvisColumnChart(data, "Number of Drugs", "Number of Reports", options = list(
       legend = "{ position: 'none' }",
       height = 600,
       vAxis = "{title: 'Number of Reports'}",
-      hAxis = "{title: 'Number of Drugs in Report'}",
+      hAxis = "{title: 'Number of Drugs per Report'}",
       chartArea = "{top: 20, height: '75%', left: 80, width: '90%'}")
     )
   })
