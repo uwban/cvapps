@@ -96,9 +96,7 @@ shinyServer(function(input, output, session) {
                  if (current_search$seriousness_type == "Death") {cv_reports_filtered_ids %<>% filter(death == '1')}
                  else if (current_search$seriousness_type == "Serious(Excluding Death)") {
                     cv_reports_filtered_ids %<>% filter(seriousness_eng == "Yes" & (is.na(death) | death != '1'))}
-                 
-                 test <- cv_reports_filtered_ids %>% select(death, seriousness_eng, report_id)
-                 View(test)
+
                  #filter by gender if selected
                  if (current_search$gender == 'Male' | current_search$gender == 'Female') {
                     cv_reports_filtered_ids %<>% filter(gender_eng == current_search$gender)
@@ -157,9 +155,7 @@ shinyServer(function(input, output, session) {
                  else if (current_search$seriousness_type == "Serious(Excluding Death)") {
                    cv_report_drug_filtered %<>% filter(seriousness_eng == "Yes" & (is.na(death) | death != '1'))}
                  
-                 test2 <- cv_report_drug_filtered %>% select(death, seriousness_eng, report_id)
-                 View(test2)
-                 
+
                  incProgress(2/9, detail = 'Filtering Reactions')
                  
                  
@@ -179,9 +175,7 @@ shinyServer(function(input, output, session) {
                  #if (current_search$seriousness_type == "Death") {cv_reactions_filtered %<>% filter(death == '1')}
                  #else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reactions_filtered %<>% filter(seriousness_eng == "Yes" & (is.na(death) || death == '2'))}
                  
-                 #test3 <- cv_reactions_filtered %>% select(death, seriousness_eng, report_id)
-                 #View(test3)
-                 
+    
                  selected_ids$ids <-  cv_reports_filtered_ids %>%
                    semi_join(cv_report_drug_filtered, "report_id" = "report_id") %>%
                    semi_join(cv_reactions_filtered, "report_id" = "report_id") %>% as.data.frame()
