@@ -98,22 +98,22 @@ aboutAuthors <- function() {list(
   fluidRow(
     box(
       "Daniel Buijs, MSc", br(),
-      "Data Scientist, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
-      "daniel.buijs@hc-sc.gc.ca",
+      "Manager, Data Sciences, Health Products and Food Branch", br(),
+      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Products and Food Branch / Health Canada", br(),
+      "daniel.buijs@canada.ca",
       width = 4
     ),
     box(
       "Sophia He, BSc (in progress)", br(),
       "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
+      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Products and Food Branch / Health Canada", br(),
       "yunqingh@sfu.ca",
       width = 4
     ),
     box(
       "Kevin Thai, BSc (in progress)", br(),
       "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
+      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Products and Food Branch / Health Canada", br(),
       "kthai@uwaterloo.ca",
       width = 4
     )),
@@ -121,28 +121,28 @@ aboutAuthors <- function() {list(
     box(
       "Bryce Claughton, BMath (in progress)", br(),
       "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
+      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Products and Food Branch / Health Canada", br(),
       "bclaught@uwaterloo.ca",
       width = 3
     ),
     box(
       "Nanqing Zhu, MSc (in progress)", br(),
       "Jr. Data Scientist, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
+      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Products and Food Branch / Health Canada", br(),
       "nanqing.zhu@mail.mcgill.ca",
       width = 3
     ),
     box(
       "Jason Jiang, BSc (in progress)", br(),
       "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
+      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Products and Food Branch / Health Canada", br(),
       "haiyangj@sfu.ca",
       width = 3
     ),
     box(
       "James Hopkins, BSc", br(),
       "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
+      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Products and Food Branch / Health Canada", br(),
       "jehopkin@sfu.ca",
       width = 3
     )
