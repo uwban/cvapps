@@ -47,6 +47,10 @@ cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       password = "")
 
 
+onStop(function() {
+  poolClose(cvponl_pool)
+})
+
 
 #get max date and meddra within our current schema
 meddra_and_date <- dbGetQuery(cvponl_pool, "SELECT  MAX(datintreceived) AS max_date, MAX(meddra_version) AS med_version FROM date_refresh.history") 
