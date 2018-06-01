@@ -29,7 +29,7 @@ source("barTableUtil.R")
 
 
 
-options(shiny.trace=TRUE)
+#options(shiny.trace=TRUE)
 # -----------------------------------------------------------------------------
 
 ########## Codes to fetch top 1000 specific results to be used in dropdown menu ############### 
@@ -44,7 +44,10 @@ cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
                       user     = "",
-                      password = "")
+                      password = "",
+                      minSize = 10,
+                      maxSize = Inf,    # this could have been omitted since it's the default
+                      idleTimeout = 3600000 )
 
 
 onStop(function() {
