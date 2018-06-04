@@ -19,6 +19,7 @@ library(DT)
 library(dplyr)
 library(lubridate)
 library(feather)
+library(RPostgreSQL)
 
 
 source("common_ui.R")
@@ -51,10 +52,13 @@ cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
 #   poolClose(cvponl_pool)
 # })
 
-
+drv <- dbDriver("PostgreSQL")
+#cvponl <- dbConnect(drv, dbname='cvponl', host='shiny.hc.local', port=80, user='', password ='')
 #get max date and meddra within our current schema
+conn <- poolCheckout(cvponl_pool)
 meddra_and_date <- dbGetQuery(cvponl_pool, "SELECT  MAX(datintreceived) AS max_date, MAX(meddra_version) AS med_version FROM date_refresh.history") 
-  
+poolReturn(conn)
+
 max_date <- meddra_and_date %>%
   `[[`(1)
 
@@ -85,6 +89,7 @@ cv_reactions                <- tbl(conn, in_schema("current2", "reactions")) %>%
 poolReturn(conn)
 
 
+poolClose(cvponl_pool)
 
 cv_reports_temp <- cv_reports %>%
   select(report_id, seriousness_eng, death)
