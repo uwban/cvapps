@@ -19,6 +19,7 @@ library(DT)
 library(dplyr)
 library(lubridate)
 library(feather)
+library(RPostgreSQL)
 
 
 source("common_ui.R")
@@ -35,8 +36,8 @@ options(shiny.trace=TRUE)
 ########## Codes to fetch top 1000 specific results to be used in dropdown menu ############### 
 # Temperary solution: fetch all tables to local and run functions on them
 
-print('start of global')
-print(Sys.time())
+# print('start of global')
+# print(Sys.time())
 
 
 #create a connection pool: insert relevant password and username
@@ -44,19 +45,26 @@ cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
                       user     = "",
-                      password = "")
+                      password = "" )
 
 
+# onStop(function() {
+#   poolClose(cvponl_pool)
+# })
 
 #get max date and meddra within our current schema
+conn <- poolCheckout(cvponl_pool)
 meddra_and_date <- dbGetQuery(cvponl_pool, "SELECT  MAX(datintreceived) AS max_date, MAX(meddra_version) AS med_version FROM date_refresh.history") 
-  
+poolReturn(conn)
+
 max_date <- meddra_and_date %>%
   `[[`(1)
 
 
+
 max_meddra <- meddra_and_date %>%
   `[[`(2) 
+
 
 
 cv_reports                  <- tbl(cvponl_pool, in_schema("current2", "reports_table"))
@@ -67,6 +75,7 @@ cv_reactions                <- tbl(cvponl_pool, in_schema("current2", "reactions
 
 #cvapps <- tbl(cvponl_pool, in_schema("current2", "cvapps"))
 
+  
 cv_reports_temp <- cv_reports %>%
   select(report_id, seriousness_eng, death)
 

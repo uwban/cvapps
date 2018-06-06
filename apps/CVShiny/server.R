@@ -3,8 +3,13 @@ library(stringr)
 
 shinyServer(function(input, output, session) {
   
+<<<<<<< HEAD
   ### page loader setting ###
   #Sys.sleep(5)
+=======
+  # ### page loader setting ###
+  # Sys.sleep(5)
+>>>>>>> 8d767ed432d9979bc9cb1499b4f2cc27718ecc91
   hide(id="loading-content",anim=TRUE,animType="fade")
   show("main-content")
 
@@ -44,9 +49,11 @@ shinyServer(function(input, output, session) {
                  } else {
                    name <- input$search_ing2
                  }
- 
-                 startDate <- input$daterange[1] #%>% ymd(tz = 'EST')
-                 endDate <- input$daterange[2] #%>% ymd(tz = 'EST')
+
+                 # print(input$daterange[1])
+                 # print(input$daterange[2])
+                 startDate <- input$daterange[1] %>% ymd(tz = 'EST')
+                 endDate <- input$daterange[2] %>% ymd(tz = 'EST')
                  dateRange <- c(startDate, endDate)
                  dateRange1 <- dateRange
                  #search variables
@@ -73,7 +80,7 @@ shinyServer(function(input, output, session) {
                  current_search$age <- input$search_age
 
                  current_search$date_range <- dateRange
-                 
+
                  current_search$age_estimate <- input$filter_estimates_age
                  
                  print(current_search)
@@ -114,7 +121,7 @@ shinyServer(function(input, output, session) {
                  #if no estimates or unknown ages wanted
                  if((current_search$age[1] != 0 | current_search$age[2] != 125) & !input$filter_estimates_age){
                       #if ages bounded by 125 only use age[1] to save time
-                      print('entered if 1')
+                      # print('entered if 1')
                       if (current_search$age[2] == 125) {
                         cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1])
                      } else {
@@ -122,8 +129,8 @@ shinyServer(function(input, output, session) {
                      }
                  }
                  else if ((current_search$age[1] != 0 |current_search$age[2] != 125) & input$filter_estimates_age){ #input$filter_estimates_age & !input$filter_unknown_age){
-                  #use age_y_clean when estimates are allowed, don't filter at all when unknown are allowed
-                     print('entered if 2')
+                  # #use age_y_clean when estimates are allowed, don't filter at all when unknown are allowed
+                  #    print('entered if 2')
                      if (current_search$age[2] == 125) {
                          cv_reports_filtered_ids %<>% filter(age_y_clean >= current_search$age[1])
                    } else {
@@ -331,8 +338,8 @@ shinyServer(function(input, output, session) {
     drug_name <- paste0(current_search$name, collapse = ", ")
     rxn <- paste0(current_search$rxn, collapse = ", ")
     soc <- paste0(current_search$soc, collapse = ", ")
-    print(rxn)
-    print(soc)
+    # print(rxn)
+    # print(soc)
     if ("" == drug_name) drug_name <- "All Drugs"
     if ("" == rxn) rxn_name <- "All Reactions"
     else rxn_name <- rxn
@@ -352,6 +359,7 @@ shinyServer(function(input, output, session) {
     print(Sys.time())
     data <- mainDataSelection()
     
+
     dates <- data %>% select(datintreceived) %>% dplyr::summarize(date_min = min(datintreceived),
                                                                    date_max = max(datintreceived)) %>%
        as.data.frame()
@@ -407,17 +415,13 @@ shinyServer(function(input, output, session) {
     
     results[is.na(results)] <- 0
 
-    print('endlinechart')
-    print(Sys.time())
-    
-    #list(results, time_interval)
     results
     
     
   })
   
   output$myareachart <- renderAreaChart({
-    print(Sys.time())
+    # print(Sys.time())
     data <- mainDataSelection()
       
  
@@ -474,7 +478,7 @@ shinyServer(function(input, output, session) {
 
     results[is.na(results)] <- 0
     results$time_p <- as.integer(as.POSIXct(results$time_p))*1000
-    print(Sys.time())
+    # print(Sys.time())
     results
   })
   
