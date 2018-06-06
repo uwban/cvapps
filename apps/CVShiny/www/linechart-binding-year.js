@@ -44,7 +44,7 @@ binding.renderValue = function(el, data) {
       
     chart.xAxis     //Chart x-axis settings
       .axisLabel('Time')
-      .tickFormat(function(d) { return d3.time.format('%b %Y')(new Date(d + 1)); });
+      .tickFormat(function(d) { return d3.time.format('%Y')(new Date(d + 1)); });
       
 
 
@@ -70,6 +70,7 @@ binding.renderValue = function(el, data) {
   
   // Retrieve the chart and selection we created earlier
   var state = $el.data("state");
+  
   // Schedule some work with nvd3
   nv.addGraph(function() {
     // Update the chart

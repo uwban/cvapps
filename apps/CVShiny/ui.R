@@ -1,4 +1,3 @@
-
 ### optional shinycssloader ###
 library(shinyjs)
 library(shinycssloaders)

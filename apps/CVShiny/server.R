@@ -4,7 +4,7 @@ library(stringr)
 shinyServer(function(input, output, session) {
   
   ### page loader setting ###
-  Sys.sleep(5)
+  #Sys.sleep(5)
   hide(id="loading-content",anim=TRUE,animType="fade")
   show("main-content")
 
@@ -44,13 +44,16 @@ shinyServer(function(input, output, session) {
                  } else {
                    name <- input$search_ing2
                  }
-                 print(input$daterange[1])
-                 print(input$daterange[2])
-                 startDate <- input$daterange[1] %>% ymd(tz = 'EST')
-                 endDate <- input$daterange[2] %>% ymd(tz = 'EST')
+ 
+                 startDate <- input$daterange[1] #%>% ymd(tz = 'EST')
+                 endDate <- input$daterange[2] #%>% ymd(tz = 'EST')
                  dateRange <- c(startDate, endDate)
                  dateRange1 <- dateRange
                  #search variables
+                 
+                 print(startDate)
+                 print(endDate)
+                 
 
                  current_search$name_type <- input$name_type
    
@@ -70,15 +73,19 @@ shinyServer(function(input, output, session) {
                  current_search$age <- input$search_age
 
                  current_search$date_range <- dateRange
-                 print("Start Filtering")
-                 print(Sys.time())
-             
                  
                  current_search$age_estimate <- input$filter_estimates_age
                  
+                 print(current_search)
+                 
                  incProgress(1/9, detail = 'Filtering Report Date Range')
                  
-
+                 print(current_search$date_range)
+                 print(current_search$age)
+                 print(current_search$search_soc)
+                 print(current_search$age_estimate)
+                 print('start of filter')
+                 print(Sys.time())
                  
                  if (month(input$daterange[2]) - month(input$daterange[1]) == 0)
                  {
@@ -175,12 +182,25 @@ shinyServer(function(input, output, session) {
                  #if (current_search$seriousness_type == "Death") {cv_reactions_filtered %<>% filter(death == '1')}
                  #else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reactions_filtered %<>% filter(seriousness_eng == "Yes" & (is.na(death) || death == '2'))}
                  
-    
-                 selected_ids$ids <-  cv_reports_filtered_ids %>%
+                 print('before_join')
+                 print(Sys.time())
+                 
+                  dbGetQuery(cvponl_pool, "SET work_mem = '256MB';")
+                 # selected_ids$ids <-  cv_reports_filtered_ids %>%
+                 #   semi_join(cv_report_drug_filtered, "report_id" = "report_id") %>%
+                 #   semi_join(cv_reactions_filtered, "report_id" = "report_id") %>% explain()
+                 # print('between')
+                 #dbGetQuery(cvponl_pool, "SET work_mem = '256MB';")
+                 selected_ids$ids <-  cv_reports_filtered_ids %>% 
                    semi_join(cv_report_drug_filtered, "report_id" = "report_id") %>%
                    semi_join(cv_reactions_filtered, "report_id" = "report_id") %>% as.data.frame()
                  incProgress(1/9, detail = 'Checking for no reports...')
+                 print('end of join')
+                 print(Sys.time())
                  n_ids <- selected_ids$ids %>% nrow()
+                 
+            
+                 
                  if (n_ids == 0) {
                    setProgress(1)
                    showModal(modalDialog(
@@ -190,6 +210,7 @@ shinyServer(function(input, output, session) {
                      easyClose = TRUE))
                    return()
                  }
+
 
 
                  #progress bar
@@ -276,9 +297,14 @@ shinyServer(function(input, output, session) {
   mainDataSelection <- reactive({
     # mychart_pool <- src_pool(hcopen_pool)
     # search_function(mychart_pool, current_search)
+    print('mainDataSelection')
+    print(Sys.time())
     if (nrow(selected_ids$ids) > 0)
     {
+      #dbGetQuery(cvponl_pool, "SET work_mem = '256MB';")
+
       data <- semi_join(cv_reports, selected_ids$ids, by = "report_id", copy=T)
+      # data %>% explain
       ids <- selected_ids$ids %>% `[[`(1)
 
     }
@@ -289,7 +315,7 @@ shinyServer(function(input, output, session) {
       current_search$name = ""
       current_search$rxn = ""
     }
-    
+
     data
   })
   
@@ -322,27 +348,28 @@ shinyServer(function(input, output, session) {
   
   
   output$mychart <- renderLineChart({
-    
+    print('linechart')
+    print(Sys.time())
     data <- mainDataSelection()
     
-    print('beging of renderlinechart')
-    print(Sys.time())
     dates <- data %>% select(datintreceived) %>% dplyr::summarize(date_min = min(datintreceived),
-                                                                  date_max = max(datintreceived)) %>%
-      as.data.frame()
-    
+                                                                   date_max = max(datintreceived)) %>%
+       as.data.frame()
+    # 
+    # 
+    # 
     two_years <- 730
-    
+
     if ((dates$date_max - dates$date_min) >= two_years) {
-      time_period <- "years"
+      time_period <- "year"
       time_function <- function(x) {years(x)}
     } else {
-      time_period <- "months"
+      time_period <- "month"
       time_function <- function(x) {months(x)}
     }
     
     data_r <- data %>% select(c(datintreceived, seriousness_eng, death)) %>%
-      dplyr::mutate(time_p = as.Date(Hmisc::truncPOSIXt(datintreceived, units = time_period)))
+      dplyr::mutate(time_p = date_trunc(time_period, datintreceived))
     
     
     total_results <- data_r %>%
@@ -379,10 +406,14 @@ shinyServer(function(input, output, session) {
       left_join(results_to_be_mapped, by = 'time_p')
     
     results[is.na(results)] <- 0
-    print('end of renderlinchart')
+
+    print('endlinechart')
     print(Sys.time())
     
+    #list(results, time_interval)
     results
+    
+    
   })
   
   output$myareachart <- renderAreaChart({
