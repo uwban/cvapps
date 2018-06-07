@@ -29,7 +29,11 @@ shinyServer(function(input, output, session) {
   
   # We need to have a reactive structure here so that it activates upon loading
   reactiveSearchButton <- reactive(as.vector(input$searchButton))
+  directory <- getwd()
   
+  default_file <- paste0(directory, '/feather_files/default.feather')
+  
+  selected_ids$ids  <- read_feather(paste0(directory, '/feather_files/default.feather'))
 
   
   
@@ -44,16 +48,11 @@ shinyServer(function(input, output, session) {
                    name <- input$search_ing2
                  }
 
-                 # print(input$daterange[1])
-                 # print(input$daterange[2])
                  startDate <- input$daterange[1] %>% ymd(tz = 'EST')
                  endDate <- input$daterange[2] %>% ymd(tz = 'EST')
                  dateRange <- c(startDate, endDate)
                  dateRange1 <- dateRange
                  #search variables
-                 
-                 print(startDate)
-                 print(endDate)
                  
 
                  current_search$name_type <- input$name_type
@@ -82,13 +81,20 @@ shinyServer(function(input, output, session) {
                  incProgress(1/9, detail = 'Filtering Report Date Range')
 
                  print(current_search$gender)
-
+                  
+                 #check for default params and load a file to speed up app init
                   if(is.null(current_search$name) & current_search$drug_inv == "Suspect" & current_search$seriousness_type == "All" 
                      & is.null(current_search$rxn) & current_search$gender == "All" & is.null(current_search$soc) & current_search$age[1] == 0 & current_search$age[2] == 125
                      & current_search$date_range[1] == "2000-01-01 EST"  & 
                      current_search$date_range[2] == "2017-12-31 EST" & current_search$age_estimate)
                   {
-                    print('made it')
+                  #   print('made it')
+                  directory <- getwd()
+                  
+                  default_file <- paste0(directory, '/feather_files/default.feather')
+                  
+                  selected_ids$ids  <- read_feather(paste0(directory, '/feather_files/default.feather'))
+                  return ()
                   }
                  
                
@@ -200,6 +206,18 @@ shinyServer(function(input, output, session) {
                  selected_ids$ids <-  cv_reports_filtered_ids %>% 
                    semi_join(cv_report_drug_filtered, "report_id" = "report_id") %>%
                    semi_join(cv_reactions_filtered, "report_id" = "report_id") %>% as.data.frame()
+                 
+                 # directory <- getwd()
+                 # 
+                 # default_file <- paste0(directory, '/feather_files/default.feather')
+                 # 
+                 # #dir.create(file.path(directory, 'apps/CVShiny/feather_files'))
+                 # 
+                 # #file.create(default_file)
+                 # 
+                 # write_feather(selected_ids$ids, default_file)
+                 
+                 
                  incProgress(1/9, detail = 'Checking for no reports...')
                  print('end of join')
                  print(Sys.time())
@@ -310,7 +328,6 @@ shinyServer(function(input, output, session) {
       #dbGetQuery(cvponl_pool, "SET work_mem = '256MB';")
 
       data <- semi_join(cv_reports, selected_ids$ids, by = "report_id", copy=T)
-      # data %>% explain
       ids <- selected_ids$ids %>% `[[`(1)
 
     }

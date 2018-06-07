@@ -5,6 +5,14 @@ library(RPostgreSQL)
 library (feather)
 
 
+directory <- getwd()
+
+default_file <- paste0(directory, '/apps/CVShiny/feather_files/default.feather')
+
+dir.create(file.path(directory, 'apps/CVShiny/feather_files'))
+
+file.create(default_file)
+
 cvponl_write <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                        host     = "shiny.hc.local",
                        dbname   = "cvponl",
