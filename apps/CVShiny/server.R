@@ -3,13 +3,7 @@ library(stringr)
 
 shinyServer(function(input, output, session) {
   
-<<<<<<< HEAD
-  ### page loader setting ###
-  #Sys.sleep(5)
-=======
-  # ### page loader setting ###
-  # Sys.sleep(5)
->>>>>>> 8d767ed432d9979bc9cb1499b4f2cc27718ecc91
+
   hide(id="loading-content",anim=TRUE,animType="fade")
   show("main-content")
 
@@ -83,16 +77,21 @@ shinyServer(function(input, output, session) {
 
                  current_search$age_estimate <- input$filter_estimates_age
                  
-                 print(current_search)
+               
                  
                  incProgress(1/9, detail = 'Filtering Report Date Range')
+
+                 print(current_search$gender)
+
+                  if(is.null(current_search$name) & current_search$drug_inv == "Suspect" & current_search$seriousness_type == "All" 
+                     & is.null(current_search$rxn) & current_search$gender == "All" & is.null(current_search$soc) & current_search$age[1] == 0 & current_search$age[2] == 125
+                     & current_search$date_range[1] == "2000-01-01 EST"  & 
+                     current_search$date_range[2] == "2017-12-31 EST" & current_search$age_estimate)
+                  {
+                    print('made it')
+                  }
                  
-                 print(current_search$date_range)
-                 print(current_search$age)
-                 print(current_search$search_soc)
-                 print(current_search$age_estimate)
-                 print('start of filter')
-                 print(Sys.time())
+               
                  
                  if (month(input$daterange[2]) - month(input$daterange[1]) == 0)
                  {
