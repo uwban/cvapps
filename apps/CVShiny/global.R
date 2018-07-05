@@ -40,7 +40,7 @@ options(shiny.trace=TRUE)
 # print(Sys.time())
 
 
-#create a connection pool: insert relevant password and username
+#create a cvponl_poolection pool: insert relevant password and username
 cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       host     = "shiny.hc.local",
                       dbname   = "cvponl",
@@ -48,16 +48,11 @@ cvponl_pool <- dbPool(drv      = RPostgreSQL::PostgreSQL(),
                       password = "" )
 
 
-# onStop(function() {
-#   poolClose(cvponl_pool)
-# })
 
 drv <- dbDriver("PostgreSQL")
-#cvponl <- dbConnect(drv, dbname='cvponl', host='shiny.hc.local', port=80, user='', password ='')
+#cvponl <- dbcvponl_poolect(drv, dbname='cvponl', host='shiny.hc.local', port=80, user='', password ='')
 #get max date and meddra within our current schema
-conn <- poolCheckout(cvponl_pool)
 meddra_and_date <- dbGetQuery(cvponl_pool, "SELECT  MAX(datintreceived) AS max_date, MAX(meddra_version) AS med_version FROM date_refresh.history") 
-poolReturn(conn)
 
 max_date <- meddra_and_date %>%
   `[[`(1)
@@ -68,28 +63,17 @@ max_date <- meddra_and_date %>%
 max_meddra <- meddra_and_date %>%
   `[[`(2) 
 
-conn <- poolCheckout(cvponl_pool)
-cv_reports                  <- tbl(conn, in_schema("current2", "reports_table")) %>% collect()
-poolReturn(conn)
+cv_reports                  <- tbl(cvponl_pool, in_schema("current2", "reports_table")) %>% collect()
 
-conn <- poolCheckout(cvponl_pool)
-cv_report_drug              <- tbl(conn, in_schema("current2", "report_drug" ))   %>% collect()
-poolReturn(conn)
+cv_report_drug              <- tbl(cvponl_pool, in_schema("current2", "report_drug" ))   %>% collect()
 
-conn <- poolCheckout(cvponl_pool)
-cv_drug_product_ingredients <- tbl(conn, in_schema("current2", "drug_product_ingredients")) %>% collect()
-poolReturn(conn)
+cv_drug_product_ingredients <- tbl(cvponl_pool, in_schema("current2", "drug_product_ingredients")) %>% collect()
 
-conn <- poolCheckout(cvponl_pool)
-cv_meddra                   <- tbl(conn, in_schema("meddra", gsub('\\.', '_', max_meddra))) %>% collect()
-poolReturn(conn)
+cv_meddra                   <- tbl(cvponl_pool, in_schema("meddra", gsub('\\.', '_', max_meddra))) %>% collect()
 
-conn <- poolCheckout(cvponl_pool)
-cv_reactions                <- tbl(conn, in_schema("current2", "reactions")) %>% collect() %>% left_join(cv_meddra, na_matches = 'never', by = "pt_code")
-poolReturn(conn)
+cv_reactions                <- tbl(cvponl_pool, in_schema("current2", "reactions")) %>% collect() %>% left_join(cv_meddra, na_matches = 'never', by = "pt_code")
 
 
-poolClose(cvponl_pool)
 
 cv_reports_temp <- cv_reports %>%
   select(report_id, seriousness_eng, death)
@@ -100,22 +84,6 @@ cv_reactions %<>% left_join(cv_reports_temp, "report_id" = "report_id")
 
 
 #following Queries are used to generate autocomplete lists
-
-
-# directory <- getwd()
-# 
-# #read feather files for autocomplete lists
-# topbrands   <- read_feather(paste0(directory, '/feather_files/topbrands.feather')) %>%
-#   `[[`(1)
-# topings_cv  <- read_feather(paste0(directory, '/feather_files/topings_cv.feather'))%>%
-#   `[[`(1)
-# smq_choices <- read_feather(paste0(directory, '/feather_files/smq_choices.feather'))%>%
-#   `[[`(1)
-# pt_choices  <- read_feather(paste0(directory, '/feather_files/pt_choices.feather'))%>%
-#   `[[`(1)
-# soc_choices <- read_feather(paste0(directory, '/feather_files/soc_choices.feather'))%>%
-#   `[[`(1)
-# 
 
 topbrands <- cv_report_drug %>%
   distinct(drugname) %>%
