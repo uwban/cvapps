@@ -35,6 +35,8 @@ as.PhViD_HCSC <-  function(DATA.FRAME, MARGIN.THRES = 1){
       DATA.FRAME <- dplyr::select(output, 1:3)
     }
   }
+  
+  
   RES <- vector(mode="list")
   RES$L <- output %>% dplyr::select(1:2)
   RES$data <- output %>% dplyr::select(n11, n1., n.1)
@@ -56,7 +58,7 @@ BCPNN_HCSC <- function(DATABASE, RR0 = 1, MIN.n11 = 1,
   n10 <- n1. - n11
   n01 <- n.1 - n11
   n00 <- N - (n11+n10+n01)
-  E <- n1. * n.1 / N # les counts attendus
+  #E <- n1. * n.1 / N # les counts attendus
   
   if(MIN.n11 > 1) {
     E <- E[n11 >= MIN.n11]
@@ -89,6 +91,8 @@ BCPNN_HCSC <- function(DATABASE, RR0 = 1, MIN.n11 = 1,
     post.H0 <- pnorm(log(RR0),EICb,sqrt(VICb))
     # Calculation of the Lower Bound
     LB <- qnorm(0.025,EICb,sqrt(VICb))
+    UB <- qnorm(0.975,EICb,sqrt(VICb))
+    IC <- qnorm(0.5,EICb,sqrt(VICb))
   }
   
   if (MC == TRUE) { # Advanced option MC
@@ -151,10 +155,10 @@ BCPNN_HCSC <- function(DATABASE, RR0 = 1, MIN.n11 = 1,
   # }
   
   ############################ SORTIE DE LA FONCTION #############################
-  RES <- data.frame(L[,1], L[,2], n11, E, (n11/E), n1., n.1, post.H0, LB, UB, IC)
-  colnames(RES) <- c("drug code","event effect","count","expected count",
-                     "n11/E","drug margin","event margin",
+  RES <- data.frame(L[,1], L[,2], n11,n1., n.1, post.H0, LB, UB, IC)
+  colnames(RES) <- c("drug_code","event_effect","count","drug margin","event margin",
                      "postH0","Q_0.025(log(IC))","Q_0.975(log(IC))","median_IC")
+  RES[,6:9]<-lapply(RES[,6:9],round,3)
   RES
 }
 
@@ -220,12 +224,91 @@ RFET_HCSC <- function(DATABASE, OR0 = 1, MIN.n11 = 1) {
     
     ############################ SORTIE DE LA FONCTION #############################
     # SIGNALS RESULTS and presentation
-    RES <- data.frame(L[,1], L[,2], n11, E, pval.uni, midpval.uni)
+    RES <- data.frame(L[,1], L[,2], n11, pval.uni, midpval.uni)
     colnames(RES) <- c("drug_code",
                        "event_effect",
                        "count",
-                       "expected_count",
                        "RFET",
                        "midRFET")
+    
+    RES[,4:5]<-lapply(RES[,4:5],round,3)
     RES
-  }
+}
+
+
+
+PRR <-function(n11,n10,n01,n00,L){
+  
+  PRR<-(n11 / (n11 + n10)) / (n01 / (n01 + n00))
+logPRR <- log(PRR)
+var_logPRR <- 1/n11 - 1/(n11 + n10) + 1/n01 - 1/(n01 + n00)
+LB95_logPRR <- qnorm(0.025,logPRR,sqrt(var_logPRR))
+UB95_logPRR <- qnorm(0.975,logPRR,sqrt(var_logPRR))
+LB95_PRR <- exp(LB95_logPRR)
+UB95_PRR <- exp(UB95_logPRR)
+PRR_result <- data.frame(drug_code = L[[1]], event_effect = L[[2]],
+                         count = n11,
+                         PRR, LB95_PRR, UB95_PRR,
+                         logPRR, LB95_logPRR, UB95_logPRR,
+                         var_logPRR,
+                         stringsAsFactors = FALSE)
+rm("PRR", "logPRR", "var_logPRR", "LB95_logPRR", "UB95_logPRR",
+   "LB95_PRR", "UB95_PRR")
+PRR_result[,4:10]<-lapply(PRR_result[,4:10],round,3)
+return(PRR_result)
+}
+
+# testconnect <- dbConnect(drv = "PostgreSQL", host = "shiny.hc.local", user = "hcwriter", dbname = "hcopen", password = "canada2")
+# dbWriteTable(testconnect, "HLT_PRR_160927", PRR_HCSC, row.names = FALSE)
+# dbDisconnect(testconnect)
+
+
+############################################## ROR ####
+# ROR_result <- vector(mode = "list")
+# ROR_result <- ROR(input_df, OR0 = 1, MIN.n11 = 1, DECISION = 3,DECISION.THRES = 0, RANKSTAT = 2)
+# ROR_PhViD <- as.data.frame(ROR_result$ALLSIGNALS)
+ROR<-function(n11,n10,n01,n00,L){
+ROR <- n11 * n00 /(n10 * n01)
+logROR <- log(ROR)
+var_logROR <- 1/n11 + 1/n10 + 1/n01 + 1/n00
+LB95_logROR <- qnorm(0.025,logROR,sqrt(var_logROR))
+UB95_logROR <- qnorm(0.975,logROR,sqrt(var_logROR))
+LB95_ROR <- exp(LB95_logROR)
+UB95_ROR <- exp(UB95_logROR)
+ROR_result <- data.frame(drug_code = L[,1], event_effect = L[,2],
+                         count = n11,
+                         ROR, LB95_ROR, UB95_ROR,
+                         logROR, LB95_logROR, UB95_logROR,
+                         var_logROR,
+                         stringsAsFactors = FALSE)
+#round to 2 decimal places:
+ROR_result[,4:10]<-lapply(ROR_result[,4:10],round,3)
+rm("ROR", "logROR", "var_logROR", "LB95_logROR", "UB95_logROR",
+   "LB95_ROR", "UB95_ROR")
+return(ROR_result)
+}
+# testconnect <- dbConnect(drv = "PostgreSQL", host = "shiny.hc.local", user = "hcwriter", dbname = "hcopen", password = "canada2")
+# dbWriteTable(testconnect, "HLT_ROR_160921", ROR_HCSC, row.names = FALSE)
+# dbDisconnect(testconnect)
+
+
+############################################## RRR ####
+RRR<-function(n11,n1.,n.1,N,L){
+RRR <- (n11*N) / (n1.*n.1)
+logRRR <- log(RRR)
+var_logRRR <- 1/n11 - 1/n1. + 1/n.1 - 1/N
+LB95_logRRR <- qnorm(0.025,logRRR,sqrt(var_logRRR))
+UB95_logRRR <- qnorm(0.975,logRRR,sqrt(var_logRRR))
+LB95_RRR <- exp(LB95_logRRR)
+UB95_RRR <- exp(UB95_logRRR)
+RRR_result <- data.frame(drug_code = L[,1], event_effect = L[,2],
+                         count = n11,
+                         RRR, LB95_RRR, UB95_RRR,
+                         logRRR, LB95_logRRR, UB95_logRRR,
+                         var_logRRR,
+                         stringsAsFactors = FALSE)
+rm("RRR", "logRRR", "var_logRRR", "LB95_logRRR", "UB95_logRRR",
+   "LB95_RRR", "UB95_RRR")
+RRR_result[,4:10]<-lapply(RRR_result[,4:10],round,3)
+return(RRR_result)
+}

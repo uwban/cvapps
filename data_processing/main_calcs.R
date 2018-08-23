@@ -24,7 +24,7 @@ hcopen <- src_postgres(host = "shiny.hc.local", user = "hcwriter", dbname = "hco
 cv_drug_rxn_meddra <- tbl(hcopen, "cv_drug_rxn_meddra")
 cv_drug_rxn_2006 <- cv_drug_rxn_meddra %>%
   filter(!is.na(PT_NAME_ENG)) %>%
-  filter(quarter >= 2006.1)
+  filter(quarter >= 2006.1)%>%as.data.frame()
 count_df <- cv_drug_rxn_2006 %>%
   group_by(ing, PT_NAME_ENG) %>%    # coerce to data frame to drop grouped and tbl attributes
   dplyr::summarise(count = n_distinct(REPORT_ID)) %>% as.data.frame()
