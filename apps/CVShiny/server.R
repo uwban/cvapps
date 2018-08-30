@@ -1,22 +1,25 @@
 library(plotly)
 library(stringr)
 
+
+
+
+
 shinyServer(function(input, output, session) {
   
-  # ### page loader setting ###
-  # Sys.sleep(5)
+  
   hide(id="loading-content",anim=TRUE,animType="fade")
   show("main-content")
-
   
-
+  
+  
   #Autocomplete suggestions are generated
   updateSelectizeInput(session, 'search_brand', choices = topbrands, server = TRUE)
   updateSelectizeInput(session, 'search_ing', choices = topings_cv, server = TRUE)
   updateSelectizeInput(session, 'search_rxn', choices = pt_choices, server = TRUE)
   updateSelectizeInput(session, 'search_soc', choices = soc_choices, server = TRUE)
   
-
+  
   
   ##### Reactive data processing
   # Data structure to store current query info
@@ -24,181 +27,94 @@ shinyServer(function(input, output, session) {
   #subset_cv <- reactiveValues()
   selected_ids <- reactiveValues()
   report_tab <- reactiveValues()
+  result_dataframes <- reactiveValues()
   
-  
+ 
   
   
   # We need to have a reactive structure here so that it activates upon loading
   reactiveSearchButton <- reactive(as.vector(input$searchButton))
+  directory <- getwd()
   
 
-  
   
   observeEvent(reactiveSearchButton(),
-               withProgress(message = 'Calculation in progress', value = 0, {
-                 
-                 if (input$name_type == "brand") {
-                   name <- input$search_brand
-                 } else if (input$name_type == "ingredient") {
-                   name <- input$search_ing
-                 } else {
-                   name <- input$search_ing2
-                 }
-                 # print(input$daterange[1])
-                 # print(input$daterange[2])
-                 startDate <- input$daterange[1] %>% ymd(tz = 'EST')
-                 endDate <- input$daterange[2] %>% ymd(tz = 'EST')
-                 dateRange <- c(startDate, endDate)
-                 dateRange1 <- dateRange
-                 #search variables
-
-                 current_search$name_type <- input$name_type
-   
-                 current_search$name <- name
-
-                 current_search$drug_inv <- input$drug_inv
-
-                 current_search$seriousness_type <- input$seriousness_type
-
-                 current_search$rxn <- input$search_rxn
-                 
-
-                 current_search$gender <- input$search_gender
-
-                 current_search$soc <- input$search_soc
-
-                 current_search$age <- input$search_age
-
-                 current_search$date_range <- dateRange
-                 # print("Start Filtering")
-                 # print(Sys.time())
-                 # 
-                 
-                 current_search$age_estimate <- input$filter_estimates_age
-                 
-                 incProgress(1/9, detail = 'Filtering Report Date Range')
-                 
-
-                 
-                 if (month(input$daterange[2]) - month(input$daterange[1]) == 0)
-                 {
-                   endDate = input$daterange[2] + month(1)
-                 }
-                 startDate <- input$daterange[1] %>% ymd(tz = 'EST') #%>% floor_date(unit="month")
-                 endDate <- endDate %>% ymd(tz = 'EST') #%>% floor_date(unit="month")
-                 dateRange <- c(startDate, endDate)
-                 #first filter by date
-                 cv_reports_filtered_ids <- cv_reports %>%
-                    filter(datintreceived >= dateRange[1], datintreceived <= dateRange[2])
-                 incProgress(1/9, detail = 'Filtering Seriousness Type and Gender')
-                 #filter by type of adverse event if selected
-        
-                 if (current_search$seriousness_type == "Death") {cv_reports_filtered_ids %<>% filter(death == '1')}
-                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {
-                    cv_reports_filtered_ids %<>% filter(seriousness_eng == "Yes" & (is.na(death) | death != '1'))}
-
-                 #filter by gender if selected
-                 if (current_search$gender == 'Male' | current_search$gender == 'Female') {
-                    cv_reports_filtered_ids %<>% filter(gender_eng == current_search$gender)
-                  }
-                 incProgress(1/9, detail = 'Applying Age Constraints')
-                 
-
-                 #if no estimates or unknown ages wanted
-                 if((current_search$age[1] != 0 | current_search$age[2] != 125) & !input$filter_estimates_age){
-                      #if ages bounded by 125 only use age[1] to save time
-                      # print('entered if 1')
-                      if (current_search$age[2] == 125) {
-                        cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1])
-                     } else {
-                           cv_reports_filtered_ids %<>% filter(age_y >= current_search$age[1] & age_y <= current_search$age[2])
-                     }
-                 }
-                 else if ((current_search$age[1] != 0 |current_search$age[2] != 125) & input$filter_estimates_age){ #input$filter_estimates_age & !input$filter_unknown_age){
-                  # #use age_y_clean when estimates are allowed, don't filter at all when unknown are allowed
-                  #    print('entered if 2')
-                     if (current_search$age[2] == 125) {
-                         cv_reports_filtered_ids %<>% filter(age_y_clean >= current_search$age[1])
-                   } else {
-                         cv_reports_filtered_ids %<>% filter(age_y_clean >= current_search$age[1] & age_y_clean <= current_search$age[2])
-                   }
-                 }
-                 cv_reports_filtered_ids %<>% select(report_id)
-                 
-
-                 cv_report_drug_filtered <- cv_report_drug
-                 if (current_search$name_type == "brand" & !is.null(current_search$name)) {
-                   if (length(current_search$name) == 1) cv_report_drug_filtered %<>% filter(drugname == current_search$name)
-                   else cv_report_drug_filtered %<>% filter(drugname %in% current_search$name)
-                   
-                   incProgress(1/9, detail = 'Filtering by Brand')
-                   
-                 #this is currently dead code
-                 } else if (current_search$name_type == "ingredient2" & !is.null(current_search$name) && current_search$name != "") {
-                   related_drugs <- cv_substances %>% filter(ing == current_search$name)
-                   cv_report_drug_filtered %<>% semi_join(related_drugs, by = "drugname")
-                   
-                   
-                 } else if (current_search$name_type == "ingredient" & !is.null(current_search$name)) {
-                   if (length(current_search$name) == 1) related_drugs <- cv_drug_product_ingredients %>% filter(active_ingredient_name == current_search$name)
-                   else related_drugs <- cv_drug_product_ingredients %>% filter(active_ingredient_name %in% current_search$name)
-                   cv_report_drug_filtered %<>% semi_join(related_drugs, by = "drug_product_id")
-                   
-                   incProgress(1/9, detail = 'Filtering by Ingredient')
-                   
-                 }
-                 if (current_search$drug_inv != "Any") {
-                   cv_report_drug_filtered %<>% filter(druginvolv_eng == current_search$drug_inv)
-                   }
-                 if (current_search$seriousness_type == "Death") {
-                   cv_report_drug_filtered %<>% filter(death == '1') }
-                 else if (current_search$seriousness_type == "Serious(Excluding Death)") {
-                   cv_report_drug_filtered %<>% filter(seriousness_eng == "Yes" & (is.na(death) | death != '1'))}
-                 
-
-                 incProgress(2/9, detail = 'Filtering Reactions')
-                 
-                 
-                 
-                 cv_reactions_filtered <- cv_reactions %>% filter(pt_name_eng != "")
-                 if (!is.null(current_search$rxn)) {
-                   if (length(current_search$rxn) == 1) {
-                     cv_reactions_filtered %<>% filter(pt_name_eng == current_search$rxn | smq_name == current_search$rxn) %>% distinct()
-                   } else {
-                     cv_reactions_filtered %<>% filter(pt_name_eng %in% current_search$rxn | smq_name %in% current_search$rxn) %>% distinct()
-                   }
-                 }
-                 if (!is.null(current_search$soc)) {
-                   if (length(current_search$soc) == 1) cv_reactions_filtered %<>% filter(soc_name_eng == current_search$soc)
-                   else cv_reactions_filtered %<>% filter(soc_name_eng %in% current_search$soc)
-                 }
-                 #if (current_search$seriousness_type == "Death") {cv_reactions_filtered %<>% filter(death == '1')}
-                 #else if (current_search$seriousness_type == "Serious(Excluding Death)") {cv_reactions_filtered %<>% filter(seriousness_eng == "Yes" & (is.na(death) || death == '2'))}
-                 
-    
-                 selected_ids$ids <-  cv_reports_filtered_ids %>%
-                   semi_join(cv_report_drug_filtered, "report_id" = "report_id") %>%
-                   semi_join(cv_reactions_filtered, "report_id" = "report_id") %>% as.data.frame()
-                 incProgress(1/9, detail = 'Checking for no reports...')
-                 n_ids <- selected_ids$ids %>% nrow()
-                 if (n_ids == 0) {
-                   setProgress(1)
-                   showModal(modalDialog(
-                     title = list(icon("exclamation-triangle"), "No results found!"),
-                     "There were no reports matching your query.",
-                     size = "s",
-                     easyClose = TRUE))
-                   return()
-                 }
+    withProgress(message = 'Calculation in progress', value = 0, {
+      
+      if (input$name_type == "brand") {
+        name <- input$search_brand
+      } else if (input$name_type == "ingredient") {
+        name <- input$search_ing
+      } else {
+        name <- input$search_ing2
+      }
+      
+      startDate <- input$daterange[1] %>% ymd(tz = 'EST')
+      print(startDate)
+      endDate <- input$daterange[2] %>% ymd(tz = 'EST')
+      print(endDate)
+      dateRange <- c(startDate, endDate)
+      print(dateRange)
+      dateRange1 <- dateRange
+      #search variables
+      
+      
+      current_search$name_type <- input$name_type
+      
+      current_search$name <- name
+      
+      current_search$drug_inv <- input$drug_inv
+      
+      current_search$seriousness_type <- input$seriousness_type
+      
+      current_search$rxn <- input$search_rxn
+      
+      
+      current_search$gender <- input$search_gender
+      
+      current_search$soc <- input$search_soc
+      
+      current_search$age <- input$search_age
+      
+      current_search$date_range <- dateRange
+      
+      current_search$startDate <- startDate
+      
+      current_search$endDate <- endDate
+      
+      current_search$age_estimate <- input$filter_estimates_age
+      
+      current_search$uri <- create_uri(current_search$startDate, current_search$endDate, current_search$gender, current_search$age, current_search$rxn, current_search$soc, current_search$drug_inv, current_search$name, current_search$seriousness, current_search$name_type)
+      # api_key <- api_key
+      
+      print(current_search$name)
 
 
-                 #progress bar
-                 incProgress(1/9, detail = 'Fetching data...')
-                 
-                 
-                 incProgress(1/9)
-                 
-               })
+      
+      option_list <- c(      current_search$age,
+                             current_search$age_estimate,
+                             current_search$dateRange,
+                             current_search$gender,
+                             current_search$age,
+                             current_search$rxn,
+                             current_search$soc,
+                             current_search$drug_inv)
+      
+      print(option_list)
+      incProgress(1/9, detail = 'Filtering Report Date Range')
+      
+
+
+      
+      
+      incProgress(1/9, detail = 'Checking for no reports...')
+# 
+
+#       
+
+      
+      
+    })
   )
   
   strtrans <- function(input)
@@ -272,179 +188,85 @@ shinyServer(function(input, output, session) {
   },
   include.colnames = FALSE
   )
-  #this is where data is streamed
-  mainDataSelection <- reactive({
-    # mychart_pool <- src_pool(hcopen_pool)
-    # search_function(mychart_pool, current_search)
-    if (nrow(selected_ids$ids) > 0)
-    {
-      data <- semi_join(cv_reports, selected_ids$ids, by = "report_id", copy=T)
-      ids <- selected_ids$ids %>% `[[`(1)
 
-    }
-    else
-    {
-      data <- NULL
-      data <- cv_reports
-      current_search$name = ""
-      current_search$rxn = ""
-    }
-    
-    data
-  })
   
   ##### Create time plot  ###
   
   output$timeplot_title <- renderUI({
-    data <- mainDataSelection()
-    
-    nreports <- data %>%
-      distinct(report_id) %>%
-      tally() %>%
-      as.data.frame()
-    drug_name <- paste0(current_search$name, collapse = ", ")
-    rxn <- paste0(current_search$rxn, collapse = ", ")
-    soc <- paste0(current_search$soc, collapse = ", ")
-    # print(rxn)
-    # print(soc)
-    if ("" == drug_name) drug_name <- "All Drugs"
-    if ("" == rxn) rxn_name <- "All Reactions"
-    else rxn_name <- rxn
-    if ("" != soc & rxn == ""){ 
-      rxn_name <- soc
-    }else if("" != soc & rxn != ""){
-      rxn_name <- paste(rxn, ', ', soc)
-    }
-    
-    plottitle <- paste0("Drug Adverse Event Reports for ", drug_name, " and ", rxn_name, " (", nreports, " reports) from ",input$daterange[1], " to ",input$daterange[2])
-    h3(strong(plottitle))
+    # data <- mainDataSelection()
+    # 
+    # nreports <- data %>%
+    #   distinct(report_id) %>%
+    #   tally() %>%
+    #   as.data.frame()
+    # drug_name <- paste0(current_search$name, collapse = ", ")
+    # rxn <- paste0(current_search$rxn, collapse = ", ")
+    # soc <- paste0(current_search$soc, collapse = ", ")
+    # # print(rxn)
+    # # print(soc)
+    # if ("" == drug_name) drug_name <- "All Drugs"
+    # if ("" == rxn) rxn_name <- "All Reactions"
+    # else rxn_name <- rxn
+    # if ("" != soc & rxn == ""){ 
+    #   rxn_name <- soc
+    # }else if("" != soc & rxn != ""){
+    #   rxn_name <- paste(rxn, ', ', soc)
+    # }
+    # 
+    # plottitle <- paste0("Drug Adverse Event Reports for ", drug_name, " and ", rxn_name, " (", nreports, " reports) from ",input$daterange[1], " to ",input$daterange[2])
+    # h3(strong(plottitle))
     })
   
+  timeDataSelection <- reactive({
+
+    print('time data')
+    
+
+    
+    time_results
+    
+    
+  })
   
   output$mychart <- renderLineChart({
-    
-    data <- mainDataSelection()
-    
-    # print('beging of renderlinechart')
-    # print(Sys.time())
-    dates <- data %>% select(datintreceived) %>% dplyr::summarize(date_min = min(datintreceived),
-                                                                  date_max = max(datintreceived)) %>%
-      as.data.frame()
-    
+
+
     two_years <- 730
-    
-    if ((dates$date_max - dates$date_min) >= two_years) {
-      time_period <- "years"
+
+    if ((current_search$endDate - current_search$startDate) >= two_years) {
+      time_period <- "year"
       time_function <- function(x) {years(x)}
     } else {
-      time_period <- "months"
+      time_period <- "month"
       time_function <- function(x) {months(x)}
     }
     
-    data_r <- data %>% select(c(datintreceived, seriousness_eng, death)) %>%
-      dplyr::mutate(time_p = as.Date(Hmisc::truncPOSIXt(datintreceived, units = time_period)))
+    dateSequence <- get_date_sequence(current_search$startDate, current_search$endDate, time_period)
+    
+    data <- get_timechart_data(time_period, dateSequence, current_search$gender, current_search$age, current_search$rxn,
+                               current_search$soc, current_search$drug_inv, current_search$name, current_search$seriousness, current_search$name_type)
+    
+    time_data <- lapply(data, request_listed)
+    df <- as.data.frame(t(as.data.frame(time_data))) %>%
+      plyr::rename(c('V1' = 'Serious(Excluding Death)', 'V2' = 'Death', 'V3' = 'Nonserious'))
     
     
-    total_results <- data_r %>%
-      group_by(time_p) %>%
-      dplyr::summarize(total = n())
-    
-    nonserious_results <- data_r %>%
-      filter(seriousness_eng == "No") %>%
-      group_by(time_p) %>%
-      dplyr::summarize(Nonserious = n())
-    
-    
-    serious_results <- data_r %>%
-      filter(seriousness_eng == "Yes" & (is.na(death) | death == '2')) %>%
-      group_by(time_p) %>%
-      dplyr::summarize("Serious(Excluding Death)" = n())
-    
-    
-    
-    death_results <- data_r %>%
-      filter(death == '1') %>%
-      group_by(time_p) %>%
-      dplyr::summarize(Death = n())
-    
-    
-    ntime_p <- interval(dates$date_min, dates$date_max) %/% time_function(1)
-    time_list <- min(dates$date_min %>% floor_date(time_period)) + time_function(0:ntime_p)
-    
-    results_to_be_mapped <- full_join(serious_results, death_results, by = 'time_p') %>%
-      full_join(nonserious_results, by = 'time_p') %>% as.data.frame() %>%
-      mutate(time_p = ymd(time_p))
-    
-    results <- data.frame(time_p = as_date(time_list)) %>%
-      left_join(results_to_be_mapped, by = 'time_p')
-    
-    results[is.na(results)] <- 0
-    # print('end of renderlinchart')
-    # print(Sys.time())
-    # 
-    results
-  })
-  
-  output$myareachart <- renderAreaChart({
-    # print(Sys.time())
-    data <- mainDataSelection()
-      
- 
-     dates <- data %>% select(datintreceived) %>% dplyr::summarize(date_min = min(datintreceived),
-                                                                         date_max = max(datintreceived)) %>%
-       as.data.frame()
-     
-     two_years <- 730
-     
-     if ((dates$date_max - dates$date_min) >= two_years) {
-       time_period <- "years"
-       time_function <- function(x) {years(x)}
-     } else {
-       time_period <- "months"
-       time_function <- function(x) {months(x)}
-     }
-     
-     data_r <- data %>% select(c(datintreceived, seriousness_eng, death)) %>%
-       dplyr::mutate(time_p = as.Date(trunc.POSIXt(datintreceived, units = time_period)))
-    
-    
-    total_results <- data_r %>%
-      group_by(time_p) %>%
-      dplyr::summarize(total = n())
-    
-    nonserious_results <- data_r %>%
-      filter(seriousness_eng == "No") %>%
-      group_by(time_p) %>%
-      dplyr::summarize(Nonserious = n())
-    
-    
-    serious_results <- data_r %>%
-      filter(seriousness_eng == "Yes" & (is.na(death) | death == '2')) %>%
-      group_by(time_p) %>%
-      dplyr::summarize("Serious(Excluding Death)" = n())
-    
-    
-    
-    death_results <- data_r %>%
-      filter(death == '1') %>%
-      group_by(time_p) %>%
-      dplyr::summarize(Death = n())
-    
-    
-    ntime_p <- interval(dates$date_min, dates$date_max) %/% months(1)
-    time_list <- min(dates$date_min %>% floor_date('month')) + months(0:ntime_p)
-    
-    results_to_be_mapped<- full_join(serious_results, death_results, by = 'time_p') %>%
-      full_join(nonserious_results, by = 'time_p') %>% as.data.frame() %>%
-      mutate(time_p = ymd(time_p))
-    
-    results <- data.frame(time_p = as_date(time_list)) %>%
-      left_join(results_to_be_mapped, by = 'time_p')
+    rownames(df) <- c()
 
-    results[is.na(results)] <- 0
-    results$time_p <- as.integer(as.POSIXct(results$time_p))*1000
-    # print(Sys.time())
-    results
+    dateSequence <- dateSequence[1:(length(dateSequence) - 1)] 
+    if(time_period == 'year'){
+      dateSequence <- format(as.Date(dateSequence), "%Y")
+    }
+    else {
+      dateSequence <- format(as.Date(dateSequence), "%Y-%m")
+    }
+    
+    df$time_p <- dateSequence
+    df <- df[,c(4,1,2,3)]
+    transform(df, time_p = toString(time_p))
+    print('help')
+    df
+
   })
   
   
@@ -452,15 +274,14 @@ shinyServer(function(input, output, session) {
   
   ### Reporterplot ###
   reportertable <- reactive({
-    df <- mainDataSelection() %>%
-      count(reporter_type_eng) %>%
-      as.data.frame()
+
     
-    df$reporter_type_eng[is.na(df$reporter_type_eng)] <- "Not reported"
-    df$reporter_type_eng[df$reporter_type_eng == "Consumer Or Other Non Health Professional"] <- "Consumer or non-health professional"
-    df$reporter_type_eng[df$reporter_type_eng == "Other Health Professional"] <- "Other health professional"
+    search_uri <- create_uri(current_search$startDate, current_search$endDate, gender=current_search$gender, 
+                             age=current_search$age, rxn=current_search$rxn, soc=current_search$soc, drug_inv=current_search$drug_inv, drugname=current_search$name, 
+                             seriousness=current_search$seriousness_type, search_type=current_search$name_type)
     
-    return(df)
+    reporter_count <- counter(current_search$uri, 'reporter_type.keyword', api_key)
+    return(reporter_count)
   })
   
   output$reporterchart <- renderGvis({
@@ -475,62 +296,30 @@ shinyServer(function(input, output, session) {
   
   ### seriousplot ###
   seriousplot_data <- reactive({
-    data <- mainDataSelection()
-    ser_eng <- data %>%
-      count(seriousness_eng) %>%
-      select(seriousness_eng,n) %>%
-      mutate(label = "seriousness_eng") %>%
-      as.data.frame()
+
     
-    death_count <- data %>%
-      count(death) %>%
-      select(death,n) %>%
-      mutate(label = "Death") %>%
-      as.data.frame()
+    search_uri <- create_uri(current_search$startDate, current_search$endDate, gender=current_search$gender, 
+                             age=current_search$age, rxn=current_search$rxn, soc=current_search$soc, drug_inv=current_search$drug_inv, drugname=current_search$name, 
+                             seriousness=current_search$seriousness_type, search_type=current_search$name_type)
     
-    colnames(ser_eng) <- c("content","n","label")
-    colnames(death_count) <- c("content","n","label")  
+    death_count <- counter(search_uri, 'outcome.keyword', api_key)
+    death_count <- death_count[(death_count$category =="Death"),]
+    seriousness_count <- counter(search_uri, 'seriousness.keyword', api_key)
     
-    big_table <- rbind(ser_eng,death_count)
-    big_table %<>% as.data.frame()
-    no_row <- big_table[big_table$label=="seriousness_eng" & big_table$content=="No",]
-    yes_row <- big_table[big_table$label=="seriousness_eng" & big_table$content=="Yes",]
-    one_row <- big_table[big_table$label=="Death" & big_table$content=='1',]
-    missing_row <- big_table[big_table$content=="",]
-    big_table <- rbind(no_row,yes_row,one_row,missing_row)
-    big_table <- na.omit(big_table)
-    if (nrow(big_table[big_table$content==1,])==0 || is.null(big_table[big_table$content==1,]))
-    {
-      number = 0
-    }
-    else
-    {
-      number = big_table[big_table$content==1,]$n
-    }
+    #remove the death counts and rename 
+    seriousness_count[1,2] <- seriousness_count[1,2] - death_count[1,2]
+    seriousness_count[1,1] <- 'Serious(excluding death)'
+    seriousness_count[2,1] <- 'Non-Serious'
+
+    totals <- rbind(death_count, seriousness_count)
     
-    for (i in 1:nrow(big_table))
-    {
-      if (big_table[i,1] == "") {big_table[i,3] <- "Not reported"}
-      else if (big_table[i,1] == 'No') {big_table[i,3] <- "Non-serious"}
-      else if (big_table[i,1] == 'Yes') 
-      {
-        big_table[i,3] <- "Serious(Excluding Death)"
-        big_table[i,2] <- big_table[i,2] - number
-      }
-      else if (big_table[i,1] == 1) {big_table[i,3] <- "Death"}
-    }
-    
-    big_table %<>%
-      as.data.frame() %>%
-      select(label,n)%>%
-      slice(match(c("Serious(Excluding Death)", "Death", "Non-serious", "Not reported"), label))
-    
-    return(big_table)
+    return(totals)
+    # return(big_table)
   })
   
   output$seriouschart <- renderGvis({
-    x = "label"
-    y = "count"
+    x = "category"
+    y = "doc_count"
     gvisPieChart_HCSC(as.data.frame(seriousplot_data()),x,y)
   })
   
@@ -542,56 +331,37 @@ shinyServer(function(input, output, session) {
   
   ### seriousreasonplot ###
   output$seriousreasonsplot <- renderGvis({
-    data <- mainDataSelection() %>%
-      filter(seriousness_eng == "Yes")
+
+    congenital_anomaly <- counter(current_search$uri, 'congenital_anomaly.keyword', api_key)
+    congenital_anomaly <- congenital_anomaly[(congenital_anomaly$category =="true"),]
+    congenital_anomaly[1,1] <- 'Congenital Anomaly'
     
-    n_congen <- data %>%
-      filter(congenital_anomaly == '1') %>%
-      tally() %>% as.data.frame() %>% `$`(n)
-    n_death <- data %>%
-      filter(death == '1') %>%
-      tally() %>% as.data.frame() %>% `$`(n)
-    n_disab <- data %>%
-      filter(disability == '1') %>%
-      tally() %>% as.data.frame() %>% `$`(n)
-    n_lifethreat <- data %>%
-      filter(life_threatening == '1') %>%
-      tally() %>% as.data.frame() %>% `$`(n)
-    n_hosp <- data %>%
-      filter(hosp_required == '1') %>%
-      tally() %>% as.data.frame() %>% `$`(n)
-    n_other <- data %>%
-      filter(other_medically_imp_cond == '1') %>%
-      tally() %>% as.data.frame() %>% `$`(n)
-    ## Check for NotSpecified ##
-    n_notspec <- data %>%
-      filter(death != '1' | is.na(death)) %>%
-      filter(disability != '1' | is.na(disability)) %>%
-      filter(congenital_anomaly != '1' | is.na(congenital_anomaly)) %>%
-      filter(life_threatening != '1' | is.na(life_threatening)) %>%
-      filter(hosp_required != '1' | is.na(hosp_required)) %>%
-      filter(other_medically_imp_cond != '1' | is.na(other_medically_imp_cond)) %>%
-      tally() %>% as.data.frame() %>% `$`(n)
+    death <- counter(current_search$uri, 'outcome.keyword', api_key)
+    death <- death[(death$category =="Death"),]
+    death[1,1] <- 'Death'
     
-    serious_reasons <- data.frame(label = c("Death",
-                                            "Life-threatening",
-                                            "Hospitalization",
-                                            "Disability",
-                                            "Congenital anomaly",
-                                            "Other medically important condition",
-                                            "Not specified"),
-                                  count = c(n_death,
-                                            n_lifethreat,
-                                            n_hosp,
-                                            n_disab,
-                                            n_congen,
-                                            n_other,
-                                            n_notspec),
-                                  stringsAsFactors = FALSE)
+    disability <- counter(current_search$uri, 'disability.keyword', api_key)
+    disability <- disability[(disability$category =="true"),]
+    disability[1,1] <- 'Disability'
+    
+    life_threatening <- counter(current_search$uri, 'life_threatening.keyword', api_key)
+    life_threatening <- life_threatening[(life_threatening$category =="true"),]
+    life_threatening[1,1] <- 'Life Threatening'
+    
+    hosp_required <- counter(current_search$uri, 'hosp_required.keyword', api_key)
+    hosp_required <- hosp_required[(hosp_required$category =="true"),]
+    hosp_required[1,1] <- 'Hospital Required'
+    
+    other_medically_imp_cond <- counter(current_search$uri, 'other_medically_imp_cond.keyword', api_key)
+    other_medically_imp_cond <- other_medically_imp_cond[(other_medically_imp_cond$category =="true"),]
+    other_medically_imp_cond[1,1] <- 'Other Medically Impaired Condition'
+    
+    serious_reasons <- rbind(congenital_anomaly, death) %>% rbind(disability) %>% rbind(life_threatening) %>% rbind(hosp_required) %>% rbind(other_medically_imp_cond)
+    
     
     gvisBarChart(serious_reasons,
-                 xvar = "label",
-                 yvar = "count",
+                 xvar = "category",
+                 yvar = "doc_count",
                  options = list(
                    legend = "{position: 'none'}",
                    hAxis = "{title: 'Number of Reports'}",
@@ -604,13 +374,10 @@ shinyServer(function(input, output, session) {
   
   ### Data about Patients
   sexplot_data <- reactive({
-    data <- mainDataSelection() %>%
-      count(gender_eng) %>%
-      as.data.frame()
-    data$gender_eng[data$gender_eng == ""] <- "Not specified"
-    data$gender_eng[is.na(data$gender_eng)] <- "Not specified"
-    sex_results <- count(data, gender_eng, wt = n)
-    sex_results
+
+    sex_data <- counter(current_search$uri, 'patient_gender.keyword', api_key)
+    
+    sex_data
   })
   
   output$sexchart <- renderGvis({
@@ -626,20 +393,14 @@ shinyServer(function(input, output, session) {
   
   #count age groups
   agegroup_data <-reactive({
-    age_groups <- mainDataSelection() %>%
-      count(age_group_clean) %>%
-      as.data.frame()
-    age_group_order <- data.frame(age_group_clean = c("Neonate",
-                                                      "Infant",
-                                                      "Child",
-                                                      "Adolescent",
-                                                      "Adult",
-                                                      "Elderly",
-                                                      "Unknown"),
-                                  stringsAsFactors = FALSE)
-    data <- left_join(age_group_order, age_groups, by = "age_group_clean")
-    data[is.na(data)] <- 0 # always including empty rows means colour-scheme will be consistent
-    data
+ 
+    age_count <- counter(current_search$uri, 'patient_age_y', api_key) %>%
+      mutate(age_group = ifelse(category <= 25/365, 'Neonate', ifelse(category <= 1, 'Infant', ifelse(category < 13, 'Child', ifelse(category < 18, 'Adolescent', ifelse(category <= 65, 'Adult', ifelse(category > 65, 'Elderly', 'Unknown')))))))
+    
+    age_count <- aggregate(age_count['doc_count'], by=age_count['age_group'], sum) 
+    
+
+    return(age_count)
   })
   output$agechart <- renderGvis({
     x = "age_group_clean"
@@ -654,36 +415,43 @@ shinyServer(function(input, output, session) {
   
   
   output$agehisttitle <- renderUI({
-    excluded_count <- mainDataSelection() %>%
-      filter(age_group_clean != "Unknown", age_y > 100) %>%
-      tally() %>% as.data.frame() %>% `$`(n)
-    HTML(paste0("<h3>Histogram of Patient Ages ",
-                tipify(
-                  el = icon("info-circle"), trigger = "hover click",
-                  title = "Distribution of number of reports per age, colour-coded by age group. Each bin groups 2 years."),
-                "<br>(", excluded_count, " reports with age greater than 100 excluded)", "</h3>"))
+    # excluded_count <- mainDataSelection() %>%
+    #   filter(age_group_clean != "Unknown", age_y > 100) %>%
+    #   tally() %>% as.data.frame() %>% `$`(n)
+    # HTML(paste0("<h3>Histogram of Patient Ages ",
+    #             tipify(
+    #               el = icon("info-circle"), trigger = "hover click",
+    #               title = "Distribution of number of reports per age, colour-coded by age group. Each bin groups 2 years."),
+    #             "<br>(", excluded_count, " reports with age greater than 100 excluded)", "</h3>"))
   })
   output$agehist <- renderPlotly({
-    age_groups <- mainDataSelection() %>% filter(age_group_clean != "Unknown", age_y <= 100) %>%
-      arrange(age_y) %>% 
-      select(c(age_y, age_group_clean)) %>%
-      as.data.frame()
-    age_groups$age_group_clean %<>% factor(levels = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"))
-    
-    # joining by remaining terms so you can assign the right colours to the legend
+
+    age_count <- counter(current_search$uri, 'patient_age_y', api_key) %>%
+      mutate(age_group = ifelse(category <= 25/365, 'Neonate', ifelse(category <= 1, 'Infant', ifelse(category < 13, 'Child', ifelse(category < 18, 'Adolescent', ifelse(category <= 65, 'Adult', ifelse(category > 65, 'Elderly', 'Unknown')))))))
+
     colours_df <- data.frame(
-      age_group_clean = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"),
+      age_group = c("Neonate", "Infant", "Child", "Adolescent", "Adult", "Elderly"),
       colours = google_colors[1:6],
-      stringsAsFactors = FALSE) %>%
-      semi_join(age_groups, by = "age_group_clean")
+      stringsAsFactors = FALSE) 
     
-    hist <- ggplot(age_groups, aes(x = age_y, fill = age_group_clean)) +
-      geom_histogram(breaks = seq(0, 100, by = 2)) +
+    colours_df <- left_join(colours_df, age_count, by = "age_group")
+    
+    hist <- ggplot(age_count, aes(x = category, fill = age_group, weight=doc_count)) +
+      geom_histogram(breaks = seq(0, 100, by = 0.5)) +
       scale_fill_manual(values = colours_df$colours) +
       xlab("Age at onset (years)") +
-      ylab("Number of Reports") +
-      theme_bw()
-    ggplotly(hist)
+      ylab("Number of Reports")
+    
+
+    the_graph <- ggplot(age_count, aes(x=category, fill=age_group, color=age_group, weight =doc_count, displayModeBar = F)) + geom_histogram(position="identity", binwidth =1)  +
+      xlab("Age at onset (years)") +
+      ylab("Number of Reports")
+    # ggplotly(hist)
+    
+    final_graph <- ggplotly(the_graph) %>% plotly::config(displayModeBar = F)
+    
+
+    final_graph
   })
   
   #### Data about Drugs
@@ -706,28 +474,12 @@ shinyServer(function(input, output, session) {
     data
   })
   
+  
+  
   ### indication ###
   indication_data <- reactive({
-    # Data frame used to obtain Top_25_indication bar chart: Indication is only associated with individual drug
-    # When brand name is unspecified, chart shows top 25 indications associated with all drugs + date_range
-    # When brand name is specified, chart shows top 25 indications associated with specified drug + date_range
-    
-    
-    # NOTE ABOUT INDICATIONS STRUCTURE:
-    # report_id -> multiple drugs per report
-    # DRUG_ID -> multiple reports may use the same drugs
-    # REPORT_DRUG_ID -> unique for each drug/report combination. count is less than total reports since drugs can have multiple indications
-    # so distinct REPORT_DRUG_ID x indication_name_eng includes the entire set of reports
-    data <- drugDataSelection() %>%
-      count(indication_name_eng) %>%
-      arrange(desc(n)) %>%
-      as.data.frame() %>%
-      filter(!is.na(indication_name_eng)) %>%
-      head(25)
-    if (nrow(data) == 0)
-    {
-      data <- data.frame(indication_name_eng = "None", n = 0)
-    }
+
+    data <- counter(current_search$uri, indication_name_eng.keyword, api_key)
     data
   })
   
@@ -741,81 +493,74 @@ shinyServer(function(input, output, session) {
     gvisTable(as.data.frame(indication_data()))
   })
 
+  ### suspected drug ###
+  suspect_data <- reactive({    
+
+    data <- counter(current_search$uri, 'report_drugname_suspect.keyword', api_key)
+    data
+
+    
+  })
+  ### concomitant drug ###
+  concomitant_data <- reactive({
+
+    print('hello')
+    data <- counter(current_search$uri, 'report_drugname_concomitant.keyword', api_key)
+    data
+  })
   
+#There is a small chance that just adding the top 1000 from both might not give the correct top 20 (if one appears high on suspect, but not in top 1000 of concomitant for instance),
+  #this possibility seems almost Infinitesimally small though
   all_data <- reactive({
-    data <- drugDataSelection() %>%
-      distinct(report_id, drugname) %>%
-      count(drugname) %>%
-      arrange(desc(n)) %>%
-      head(25) %>%
-      as.data.frame()
+    concomitant <- concomitant_data()
+    suspect <- suspect_data()
+    
+    data <- rbind(concomitant, suspect)
+    data <- aggregate(data['doc_count'], by=data['category'], sum) 
+    data <- data[order(data$doc_count, decreasing = TRUE),] 
+    #take the top 20
+    data <- data[1:20,]
+    
     data
   })
   
   output$alldrugchart <- renderGvis({
-    x = "drugname"
-    y = "n"
-    gvisBarChart_HCSC(as.data.frame(all_data()),x,y,color = google_colors[2])
+    x = "category"
+    y = "doc_count"
+    gvisBarChart_HCSC(as.data.frame(all_data())[1:20,],x,y,color = google_colors[2])
   })
   
   output$alldrugtable    <- renderGvis({
-    gvisTable(as.data.frame(all_data()))
+    gvisTable(as.data.frame(all_data())[1:20,])
   })
   
 
-  ### suspected drug ###
-  suspect_data <- reactive({
-    data <- drugDataSelection() %>%
-      filter(druginvolv_eng == "Suspect") %>%
-      dplyr::distinct(report_id, drugname) %>%
-      count(drugname) %>%
-      arrange(desc(n)) %>%
-      head(25) %>%
-      as.data.frame()
-    if (nrow(data) == 0)
-    {
-      data <- data.frame(drugname = 'None', n = 0)
-    }
-    data
-  })
+
   
   output$suspecteddrugchart <- renderGvis({
     # When generic, brand & reaction names are unspecified, count number of UNIQUE reports associated with each durg_name
     #    (some report_id maybe duplicated due to multiple REPORT_DRUG_ID & drug_product_id which means that patient has diff dosage/freq)
     # the top drugs reported here might be influenced by such drug is originally most reported among all reports
-    gvisBarChart_HCSC(suspect_data(), "drugname", "n", google_colors[3])
+    gvisBarChart_HCSC(suspect_data()[1:20,], "category", "doc_count", google_colors[3])
+    
   })
   
   output$suspecteddrugtable <- renderGvis({
-    gvisTable(suspect_data())
+    gvisTable(suspect_data()[1:20,])
   })
   
-  ### concomitant drug ###
-  concomitant_data <- reactive({
-    data <- drugDataSelection() %>%
-      filter(druginvolv_eng == "Concomitant") %>%
-      distinct(report_id, drugname) %>%
-      count(drugname) %>%
-      arrange(desc(n)) %>%
-      head(25) %>%
-      as.data.frame()
-    if (nrow(data) == 0)
-    {
-      data <- data.frame(drugname = 'None', n = 0)
-    }
-    data
-  })
+
   
   output$concomitantdrugchart <- renderGvis({
     # When generic, brand & reaction names are unspecified, count number of UNIQUE reports associated with each durg_name
     #    (some report_id maybe duplicated due to multiple REPORT_DRUG_ID & drug_product_id which means that patient has diff dosage/freq)
     # the top drugs reported here might be influenced by such drug is originally most reported among all reports
-    gvisBarChart_HCSC(concomitant_data(), "drugname", "n", google_colors[4])
+    gvisBarChart_HCSC(concomitant_data()[1:20,], "category", "doc_count", google_colors[4])
   })
   
   output$concomitantdrugtable <- renderGvis({
     data <- concomitant_data()
-    gvisTable(data)
+    gvisTable(data[1:20,])
   })
   
   output$drugcounttitle <- renderUI({
@@ -833,16 +578,12 @@ shinyServer(function(input, output, session) {
   })
   
   drugcount_data <- reactive({
-    data <- drugDataSelection() %>%
-      count(report_id) %>%
-      filter(n <= 20) %>%
-      group_by(n) %>%
-      count() %>%
-      arrange(n) %>%
-      as.data.frame() %>%
-      mutate(`Number of Drugs` = as.factor(n),
-             `Number of Reports` = nn) %>%
-      select(-c(n,nn))
+    
+    uri <- current_search$uri
+    
+    data <- drugs_per_report(uri)
+    
+    data
   })
   
   output$drugcount_plot <- renderGvis({
@@ -883,17 +624,14 @@ shinyServer(function(input, output, session) {
   
   ### toppt ###
   top_pt_data <- reactive({
-    data <- rxnDataSelection() %>%
-      count(pt_name_eng) %>%
-      arrange(desc(n)) %>%
-      head(15) %>%
-      as.data.frame()
+
+    data <- counter(current_search$uri, 'reaction_pt.keyword', api_key)
     data
   })
   
   output$topptchart <- renderGvis({
-    x = "pt_name_eng"
-    y = "n"
+    x = "category"
+    y = "doc_count"
     gvisBarChart_HCSC(as.data.frame(top_pt_data()),x,y,color = google_colors[1])
   })
   
@@ -924,12 +662,16 @@ shinyServer(function(input, output, session) {
   
   ### outcome plot ###
   outcomeplot_data <- reactive({
-    mainDataSelection() %>%
-      count(outcome_eng) %>%
-      as.data.frame()
+
+    search_uri <- create_uri(current_search$startDate, current_search$endDate, gender=current_search$gender, 
+                             age=current_search$age, rxn=current_search$rxn, soc=current_search$soc, drug_inv=current_search$drug_inv, drugname=current_search$name, 
+                             seriousness=current_search$seriousness_type, search_type=current_search$name_type)
+    
+    outcome_count <- counter(search_uri, 'outcome.keyword', api_key)
+    return(outcome_count)
   })
   output$outcomechart <- renderGvis({
-    x = "outcome_eng"
+    x = "outcome"
     y = "n"
     gvisPieChart_HCSC(as.data.frame(outcomeplot_data()),x,y)
   })
