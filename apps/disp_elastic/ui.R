@@ -1,32 +1,35 @@
 ui <- dashboardPage(
-  dashboardHeader(title = titleWarning("Shiny DISP (v0.20)"),
+  dashboardHeader(title = titleWarning("Shiny DISP (v0.30)"),
                   titleWidth = 700),
   
   dashboardSidebar(
     width = 280,
     sidebarMenu(
-      menuItem("Disproportionality Analysis", tabName = "data", icon = icon("database")),
       selectInput(inputId ="search_drug",
-                     label = "Ingredient",
-                     choices = c(ing_choices, "Start typing to search..." = ""),
-                     multiple = F,
-                     selected = ing_choices[1]),
+                  label = "Ingredient",
+                  choices = c(ing_choices, "Start typing to search..." = ""),
+                  multiple = F,
+                  selected = ing_choices[1]),
+      
       selectInput(inputId = "search_pt",
-                     label = "Adverse Event Preferred Term",
-                     choices = c(pt_choices,"Start typing to search..." = ""),
-                     multiple = F,
-                     selected= pt_choices[1]),
+                  label = "Adverse Event Preferred Term",
+                  choices = c(pt_choices,"Start typing to search..." = ""),
+                  multiple = F,
+                  selected= pt_choices[1]),
       
       tags$div(class="form-group shiny-input-container",
                actionButton(inputId = "search_button",
                             label = "Search",
-                            width = '90%')
-      ),
+                            width = '90%')),
+      menuItem("Disproportionality Analysis", tabName = "data", icon = icon("calculator")),
+      menuItem("Dynamic PRR", tabName = "dnprr", icon = icon("equalizer",lib = "glyphicon")),
+      menuItem("Change Point Analysis", tabName = "cpa", icon = icon("superscript")),
+      #menuItem("Likelihood Analysis", tabName = "llr", icon = icon("industry")),
       tags$h3(strong("Current Query:")),
       tableOutput("current_search"),
       downloadButton(outputId = "pt_data_dl",
                      label = "Export PT data"),
-      menuItem("Documentation", tabName = "Documentation", icon = icon("flag")),
+      menuItem("Documentation", tabName = "Documentation", icon = icon("archive")),
       menuItem("About", tabName = "aboutinfo", icon = icon("info"), selected = TRUE)
     )
   ), 
@@ -35,14 +38,14 @@ ui <- dashboardPage(
     customCSS(),
     tabItems(
       tabItem(tabName = "data",
-              fluidRow(width=12,
+              fluidRow(
                 
                 column(12,
                        h3(textOutput("current_pt_title")),
                        plotlyOutput( "timeplot_pt"))
                 ),
               
-               fluidRow(width=12,
+               fluidRow(
                   tabBox(id="tabbox",width=12,
                   
                   tabPanel(
@@ -63,6 +66,43 @@ ui <- dashboardPage(
                   ))
               
       ),
+      tabItem(tabName="dnprr",
+              fluidRow(width=12,
+              h3(textOutput("current_dpnrr_title")),
+              plotlyOutput( "dpnrr_plot")
+              ),
+                
+              fluidRow(width=12,
+                       DT::dataTableOutput("dpnrr_table")
+                       )
+              ),
+    
+      tabItem(tabName="cpa",
+              tabsetPanel(
+                tabPanel("Change in Mean Analysis",
+                         fluidRow(column(width=12,
+                                         h3(textOutput("cpa_mean_title")),
+                                         plotlyOutput('cpa_mean')),
+                                  column(tableOutput('cpa_mean_txt'),width=6))),
+                tabPanel("Change in Variance Analysis",
+                         fluidRow(column(width=12,
+                                         h3(textOutput("cpa_var_title")),
+                                         plotlyOutput('cpa_variance'))),
+                         fluidRow(column(tableOutput('cpa_variance_txt'),width=6))),
+                tabPanel("Bayesian Analysis",
+                         fluidRow(column(width=12,
+                                         h3(textOutput("bcp_title")),
+                                         plotOutput('bcpa'))),
+                         fluidRow(column(
+                           tableOutput('bcpa_txt'),width=6))
+              ))),
+      
+      # tabItem(tabName="llr",
+      #         fluidRow(width=12,
+      #                  column(12,
+      #                         h3(textOutput("llr_title")),
+      #                         plotlyOutput('llr_plot'))),
+      #         fluidRow(width=12,tableOutput('llr_txt'))),
       
       tabItem(tabName = "Documentation",
               fluidRow(
@@ -98,13 +138,13 @@ ui <- dashboardPage(
           "</p>",
           "<br>",
           "<p>",
-          "<strong>Data last updated: 2015-03-31</strong><br>",
-          "<strong>MedDRA version: 19.0</strong><br>",
+          "<strong>Data last updated: 2018-03-31</strong><br>",
+          "<strong>MedDRA version: 20.0</strong><br>",
           "Data provided by the Canada Vigilance Adverse Reaction Online Database. The recency of the data is therefore ",
           "dependent on when the data source is updated, and is the responsibility of the Canada Vigilance Program. ",
           "For more information, please refer to ",
-          "<a href = \"http://www.hc-sc.gc.ca/dhp-mps/medeff/databasdon/index-eng.php\">",
-          "http://www.hc-sc.gc.ca/dhp-mps/medeff/databasdon/index-eng.php</a>.",
+          "<a href = \"https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database.html\">",
+          "https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database.html</a>.",
           "</p>")),
         aboutAuthors()
       ))

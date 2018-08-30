@@ -1,48 +1,7 @@
 library(PhViD)
 library(MCMCpack)
 
-as.PhViD_HCSC <-  function(DATA.FRAME, MARGIN.THRES = 1){
-  coln = names(DATA.FRAME)
-  DATA.FRAME[[3]] %<>% as.numeric() # leaving as integer can result in overflow during calculations
-  threshold_satisfied <- FALSE
-  output <- data.frame()
-  
-  while (!threshold_satisfied) {
-    # calculate marginals
-    n1._df <- aggregate(DATA.FRAME[3], DATA.FRAME[1] , sum) %>%
-      dplyr::filter(count >= MARGIN.THRES) %>%
-      dplyr::rename(n1. = count) %>%
-      as.data.frame()
-    n.1_df <- aggregate(DATA.FRAME[3], DATA.FRAME[2] , sum) %>%
-      dplyr::filter(count >= MARGIN.THRES) %>%
-      dplyr::rename(n.1 = count) %>%
-      as.data.frame()
-    
-    # generate new count table
-    output <- DATA.FRAME %>%
-      dplyr::left_join(n1._df, by = coln[1]) %>%
-      dplyr::left_join(n.1_df, by = coln[2]) %>%
-      # drop all rows for which a marginal doesn't exist
-      dplyr::filter(!is.na(n1.) & !is.na(n.1))
-    
-    if ( identical(dplyr::select(output, 1:3), DATA.FRAME) ) {
-      output %<>% dplyr::rename(n11 = count)
-      # all marginals satisfy threshold since no entries dropped
-      threshold_satisfied = TRUE
-    } else {
-      # recalculate marginals based on which terms were kept and
-      #   check again that marginal threshold is satisified
-      DATA.FRAME <- dplyr::select(output, 1:3)
-    }
-  }
-  
-  
-  RES <- vector(mode="list")
-  RES$L <- output %>% dplyr::select(1:2)
-  RES$data <- output %>% dplyr::select(n11, n1., n.1)
-  RES$N <- sum(output$n11)
-  RES
-}
+
 
 ########## BCPNN_HCSC function to include upper bound of IC and return the actual IC value #################
 BCPNN_HCSC <- function(DATABASE, RR0 = 1, MIN.n11 = 1,
@@ -311,4 +270,48 @@ rm("RRR", "logRRR", "var_logRRR", "LB95_logRRR", "UB95_logRRR",
    "LB95_RRR", "UB95_RRR")
 RRR_result[,4:10]<-lapply(RRR_result[,4:10],round,3)
 return(RRR_result)
+}
+
+
+LLRD <- function( N, n1., n.1, n11) 
+{
+  a <- n11
+  b <- n1. - n11
+  c <- n.1 - n11
+  d <- N - n1. - n.1 + n11
+  aterm <- suppressWarnings( a*( log(a) - log( a + b) ) )
+  cterm <- suppressWarnings( c*( log(c) - log(c + d) ) )
+  acterm <- suppressWarnings( ( a + c ) * ( log(a + c) - log ( a + b + c + d)) )
+  llr <- aterm + cterm - acterm
+  llr[is.nan(llr)] <- 0
+  return( llr )
+}
+
+
+logLRnum<-function(x,y, z, n)
+{
+  logLR<-x*(log(x)-log(y))+ (z-x)*(log(z-x)-log(n-y))
+  return(logLR)
+}
+
+getCritVal2 <- function(R, n_j, n_i, n, Pvector, prob)
+{
+  
+  I <- length(Pvector)
+  Simulatej<-rmultinom(R,size=n_j,prob=Pvector)  
+  myLLRs<-matrix(0,I,R)   
+  for (i in seq_along(Pvector)){
+    for (j in 1:R)
+    {
+      
+      myLLRs[i,j]=logLRnum( Simulatej[i,j] ,n_i[i] , n_j, n )
+    }
+  }
+  myLLRs <- myLLRs - n_j*log(n_j)+n_j*log(n)
+  myLLRs[is.nan(myLLRs)] <- 0
+  myLLRs[is.na(myLLRs)] <- 0
+  mymax <- apply(myLLRs, 2, max)
+  critval <- quantile(mymax,  probs = prob)
+  critval01 <- quantile(mymax,  probs = .99)       #get cut off value
+  return( list(critval=critval, critval01=critval01, mymax=mymax) ) 
 }

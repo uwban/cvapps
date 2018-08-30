@@ -2,28 +2,44 @@ server <- function(input, output, session) {
   
 search_url<-reactiveValues( 
 
-  d_count=paste0(base_url,'?search=report_ingredient_suspect:',ing_choices[1],'&count=_id.keyword'),
-  ae_count=gsub(' ','%20',paste0(base_url,'?search=reaction_pt:',pt_choices[1],'&count=_id.keyword')),
-  de_count=gsub(' ','%20',paste0(base_url,'?search=report_ingredient_suspect:',ing_choices[1],'+AND+','reaction_pt:',pt_choices[1],'&count=_id.keyword')),
-  total_count=paste0(base_url,'?count=_id.keyword'),
-  time=gsub(' ','%20',paste0(base_url,'?search=report_ingredient_suspect:',ing_choices[1],'+AND+','reaction_pt:',
-                    pt_choices[1],'&count=datintreceived:quarter')),
+  d_count=paste0(base_url,'?search=report_ingredient_suspect:',ing_choices[1],'&count=_id.keyword')%>%add_api_key(),
+  ae_count=paste0(base_url,'?search=reaction_pt:',pt_choices[1],'&count=_id.keyword')%>%add_api_key(),
+  de_count=paste0(base_url,'?search=report_ingredient_suspect:',ing_choices[1],'+AND+','reaction_pt:',pt_choices[1],'&count=_id.keyword')%>%add_api_key(),
+  total_count=paste0(base_url,'?count=_id.keyword')%>%add_api_key(),
+  time=paste0(base_url,'?search=report_ingredient_suspect:',ing_choices[1],'+AND+','reaction_pt:',
+                    pt_choices[1],'&count=datintreceived:quarter')%>%add_api_key(),
   drug=ing_choices[1],
-  pt=pt_choices[1]
+  pt=pt_choices[1],
+  cpa=paste0(base_url,'?search=report_ingredient_suspect:',ing_choices[1],'+AND+','reaction_pt:',
+                                  pt_choices[1],'&count=datintreceived:quarter')%>%add_api_key(),
+  dnprr_d=paste0(base_url,'?search=report_ingredient_suspect:',ing_choices[1],'&count=datintreceived:quarter')%>%add_api_key(),
+  dnprr_ae=paste0(base_url,'?search=reaction_pt:',pt_choices[1],'&count=datintreceived:quarter')%>%add_api_key(),
+  dnprr_total=paste0(base_url,'?count=datintreceived:quarter')%>%add_api_key(),
+  llr_d=paste0(base_url,'?search=report_ingredient_suspect:',ing_choices[1],'&count=reaction_pt.keyword')%>%add_api_key()
 )
   
   observeEvent(input$search_button,{
     
-   url_d<-paste0(base_url,'?search=report_ingredient_suspect:',input$search_drug,'&count=_id.keyword')
-   url_d<-gsub(' ','%20',url_d)
-   url_ae<-paste0(base_url,'?search=reaction_pt:',input$search_pt,'&count=_id.keyword')
-   url_ae<-gsub(' ','%20',url_ae)
-   url_de<-paste0(base_url,'?search=report_ingredient_suspect:',input$search_drug,'+AND+','reaction_pt:',input$search_pt,'&count=_id.keyword')
-   url_de<-gsub(' ','%20',url_de)
+   url_d<-paste0(base_url,'?search=report_ingredient_suspect:',input$search_drug,'&count=_id.keyword')%>%add_api_key()
+  
+   url_ae<-paste0(base_url,'?search=reaction_pt:',input$search_pt,'&count=_id.keyword')%>%add_api_key()
+ 
+   url_de<-paste0(base_url,'?search=report_ingredient_suspect:',input$search_drug,
+                  '+AND+','reaction_pt:',input$search_pt,'&count=_id.keyword')%>%add_api_key()
+ 
    
-   url_time_count<-paste0(base_url,'?search=report_ingredient_suspect:',input$search_drug,'+AND+','reaction_pt:',
-                          input$search_pt,'&count=datintreceived:quarter')
-   url_time<-gsub(' ','%20',url_time_count)
+   url_time<-paste0(base_url,'?search=report_ingredient_suspect:',input$search_drug,'+AND+','reaction_pt:',
+                          input$search_pt,'&count=datintreceived:quarter')%>%add_api_key()
+   
+   
+   url_cpa_count<-paste0(base_url,'?search=report_ingredient_suspect:',input$search_drug,'+AND+','reaction_pt:',
+                         input$search_pt,'&count=datintreceived:quarter')%>%add_api_key()
+   
+   url_dnprr_d<-paste0(base_url,'?search=report_ingredient_suspect:',input$search_drug,'&count=datintreceived:month')%>%add_api_key()
+   
+   url_dnprr_ae<-paste0(base_url,'?search=reaction_pt:',input$search_pt,'&count=datintreceived:month')%>%add_api_key()
+   url_dnprr_total<-paste0(base_url,'?count=datintreceived:month')%>%add_api_key()
+   url_llr=paste0(base_url,'?search=report_ingredient_suspect:',ing_choices[1],'&count=reaction_pt.keyword')%>%add_api_key()
    
    search_url$d_count<-url_d
    search_url$ae_count<-url_ae
@@ -31,6 +47,11 @@ search_url<-reactiveValues(
    search_url$time<-url_time
    search_url$drug<-input$search_drug
    search_url$pt<-input$search_pt
+   search_url$cpa<-url_cpa_count
+   search_url$dnprr_d<-url_dnprr_d
+   search_url$dnprr_ae<-url_dnprr_ae
+   search_url$dnprr_total<-url_dnprr_total
+   search_url$llr_d<-url_llr
 })
 
   
@@ -51,7 +72,7 @@ phvid_df<-reactive({
   #asesemble into PhViD data type
 disp_result<-reactive({
   
-  withProgress(message='Calculating...',value=0,{
+  withProgress(message='Performing Disproportionality analysis...',value=0,{
     
     
     DATA <- phvid_df()$data
@@ -98,7 +119,111 @@ disp_result<-reactive({
   
 })
     
+
+#change of point input:
+cpa_data<-reactive({
   
+  datax<-hc_result(search_url$cpa,F)%>%
+          dplyr::select(c(1,3))%>%
+          rename(time=key_as_string,
+                 n=doc_count)%>%
+          mutate(time=substr(time,1,10))
+  
+  start<-c(as.numeric(substr(datax$time[1],1,4)),as.numeric(substr(datax$time[1],6,7)))
+  datax2<-ts(datax$n,start=start,frequency = 4)
+  
+ 
+  return(list(datax=datax,
+              datax2=datax2))
+  
+})
+
+
+# cpa_mean,var and bcp calculation
+cpa_cal<-reactive({
+  
+  withProgress(message='Performing ChangePoint analysis...',value=0,{
+  datax2<-cpa_data()$datax2
+  count_table<-cpa_data()$datax
+  
+  # validate(
+  #   need(nrow(count_table)>=4,"Insufficient Data to fit a changepoint model,at least 4 observations are needed,
+  #      please make a new selection")
+  # )
+  # 
+  incProgress(1/3)
+  cpt_mean<-cpt.mean(datax2, Q=5, method='BinSeg')
+  
+  cpt_var<-cpt.var(datax2, Q=5, method='BinSeg')
+  incProgress(2/3)
+  
+  #add if statement to prevent crash:
+  if(nrow(count_table)>=4){
+    bcp.flu<-bcp(as.double(datax2),p0=0.3)
+  }else{
+    bcp.flu<-NULL
+  }
+ 
+  
+  return(list(cpt_m=cpt_mean,
+              cpt_v=cpt_var,
+              bcp=bcp.flu))
+  })
+  
+})
+
+
+#build dynamic prr reactive data:
+
+dnprr_cal<-reactive({
+  
+  withProgress(message='Calculating PRR over time...',value=0,{
+  
+  dnprr_d_ae<-hc_result(search_url$cpa,F)%>%
+                 mutate(n11=cumsum(doc_count))%>%
+                 dplyr::select(key_as_string,n11)
+                 
+  dnprr_d<-hc_result(search_url$dnprr_d,F)%>%
+            mutate(n1.=cumsum(doc_count))%>%
+            dplyr::select(key_as_string,n1.)
+  
+  dnprr_ae<-hc_result(search_url$dnprr_ae,F)%>%
+            mutate(n.1=cumsum(doc_count))%>%
+            dplyr::select(key_as_string,n.1)
+  
+  dnprr_total<-hc_result(search_url$dnprr_total,F)%>%
+               mutate(N=cumsum(doc_count))%>%
+               dplyr::select(key_as_string,N)
+  incProgress(1/3)
+  
+  merged_tb<-left_join(dnprr_d_ae,dnprr_d)%>%
+             left_join(dnprr_ae)%>%
+             left_join(dnprr_total)
+  
+  
+  PRR<-(merged_tb$n11 /merged_tb$n1.)/((merged_tb$n.1 -merged_tb$n11) / (merged_tb$N-merged_tb$n1.))
+  logPRR <- log(PRR)
+  
+  var_logPRR <- 1/merged_tb$n11 - 1/merged_tb$n1. + 1/(merged_tb$n.1-merged_tb$n11) - 1/(merged_tb$N-merged_tb$n1.)
+  
+  incProgress(2/3)
+  
+  LB95_logPRR <- qnorm(0.025,logPRR,sqrt(var_logPRR))
+  UB95_logPRR <- qnorm(0.975,logPRR,sqrt(var_logPRR))
+  LB95_PRR <- exp(LB95_logPRR)
+  UB95_PRR <- exp(UB95_logPRR)
+  
+  results<-data.frame(time=substr(merged_tb$key_as_string,1,7),prr=PRR,lb=LB95_PRR,ub=UB95_PRR,sd=sqrt(var_logPRR))
+  
+  return(results)
+  
+  })
+})
+
+
+
+
+
 ########## Output
   # Display what query was searched
 
@@ -185,35 +310,153 @@ disp_result<-reactive({
   })
   
   
-  output$timeplot_pt<-renderPlotly(({
-    data<-time_data_pt()%>%mutate(qtr = as.yearqtr(quarter %>% as.character(), '%Y-%q'))
+  output$timeplot_pt<-renderPlotly({
+    data<-time_data_pt()%>%mutate(qtr = as.yearqtr(quarter,format='%Y-%m-%d'))
     
     f1 <- list(
       family = "Arial, sans-serif",
-      size = 18,
-      color = "lightgrey"
+      size = 16
     )
     
-    plot_ly(data,x=~qtr,y=~n,name='time-series')%>%
+    plot_ly(data,x=~qtr,y=~n,mode='lines+markers',name='time-series')%>%
+            # marker = list(size = 10,
+            #           color = 'rgba(255, 182, 193, .9)',
+            #           line = list(color = 'rgba(152, 0, 0, .8)',
+            #           width = 2)))%>%
       layout(xaxis=list(title='Quarter',
                         titlefont=f1,
                         tickangle=330),
              yaxis=list(title='Report Count'))
     
-  }))
+  })
  
-  # time_data_pt %>%  %>%
-  #   ggvis(~qtr, ~n) %>%
-  #   add_axis("x", title = "Quarter", properties = axis_props(
-  #     label = list(angle = 330))) %>%
-  #   add_axis("y", title = "Report Count") %>%
-  #   add_tooltip(function(data){paste0("Count: ", as.character(data$n))},
-  #               "hover") %>%
-  #   layer_points(fill = ~label, stroke := "black") %>%
-  #   group_by(label) %>%
-  #   layer_paths(stroke = ~label) %>%
-  #   set_options(width = 'auto') %>%  bind_shiny("timeplot_pt", "data")
+ ###Change of Point analysis output:
+  output$cpa_mean_title<- renderText({
+    paste("Change of Point Mean Analysis for:",search_url$drug,'&',search_url$pt)
+  })
 
+  output$cpa_mean<-renderPlotly({
+    
+    p<-autoplot(cpa_cal()$cpt_m,ts.colour='dodgerblue4')+
+                             labs(x='Quarter',y='Count')+
+            theme(axis.text.x  = element_text(angle=20, vjust=0.5, size=10),
+            panel.background = element_rect(fill = "white",
+                                            colour = "black",
+                                            size = 0.5, linetype = "solid"),
+            panel.grid.major = element_line(size = 0.25, linetype = 'solid',
+                                            colour = "gray96"), 
+            panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                            colour = "gray96"))
+                            
+    ggplotly(p)
 
+  })
+  
+  
+  output$cpa_mean_txt<-renderTable({
+    
+    data<-cpa_cal()$cpt_m
+    ts<-cpa_data()$datax
+    cpa_loc<-paste(ts[data@cpts[1:length(data@cpts)-1],'time'],collapse=',')
+    
+    summary_table<-data.frame(names=c('Changepoint type','Method of analysis','Test Statistic','Type of penalty',
+                                      'Maxium no. of cpts','ChangePoint locations'),
+                              terms=c(data@cpttype,data@method,data@test.stat,data@pen.type,data@ncpts.max,cpa_loc))
+    
+   summary_table
+  },colnames=F)
+  
+  
+  output$cpa_var_title<- renderText({
+    paste("Change of Point Variance Analysis for:",search_url$drug,'&',search_url$pt)
+  })
+  
+  output$cpa_variance<-renderPlotly({
+    p<-autoplot(cpa_cal()$cpt_v,ts.colour='dodgerblue4')+labs(x='Quarter',y='Count')+
+       theme(axis.text.x  = element_text(angle=20, vjust=0.5, size=10),
+            panel.background = element_rect(fill = "white",
+                                            colour = "black",
+                                            size = 0.5, linetype = "solid"),
+            panel.grid.major = element_line(size = 0.25, linetype = 'solid',
+                                            colour = "gray96"), 
+            panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                            colour = "gray96"))
+    ggplotly(p)
+    
+  })
+  
+  
+  output$cpa_variance_txt<-renderTable({
+    
+    data<-cpa_cal()$cpt_v
+    ts<-cpa_data()$datax
+    cpa_loc<-paste(ts[data@cpts[1:length(data@cpts)-1],'time'],collapse=',')
+    
+    summary_table<-data.frame(names=c('Changepoint type','Method of analysis','Test Statistic','Type of penalty',
+                                      'Maxium no. of cpts','Changepoint locations'),
+                              terms=c(data@cpttype,data@method,data@test.stat,data@pen.type,data@ncpts.max,cpa_loc))
+    
+    summary_table
+ },colnames=F)
+  
+ 
+  output$bcp_title<- renderText({
+    paste("Bayesian Changepoint Analysis for:",search_url$drug,'&',search_url$pt)
+  })
+  
+  output$bcpa<-renderPlot({
+    plot(cpa_cal()$bcp)
+  })
+  
+  output$bcpa_txt<-renderTable({
+    data<-cpa_cal()$bcp
+    data2<-cpa_data()$datax
+    
+    data2$postprob<-data$posterior.prob
+    data2<-data2%>%arrange(desc(postprob))%>%slice(1:5)%>%
+                   rename(Quarter=time,Count=n)
+    
+    data2
+    
+  })
+  
+  
+  output$current_dpnrr_title<-renderText({
+    paste("Dynamic PRR for:",search_url$drug,'&',search_url$pt)
+  })
+  
+  output$dpnrr_plot<-renderPlotly({
+    
+    mydf<-dnprr_cal()
+    
+    mydf$quarter<-parse_date_time(mydf$time,"ym")
+   
+    #xloc <-parse_date_time(mydf$time,"ym")
+    #labs <- mydf$time
+    
+    lbgap <-   exp(log(mydf$lb) + .96*mydf$sd) #exp ( log( prr ) - 1.96*sd )
+    ubgap <-   exp(log(mydf$ub) - .96*mydf$sd)
+    
+    p<-ggplot(mydf,aes(x=quarter,y=prr))+geom_point(colour='dodgerblue4',size=1.5)+
+      ylim( min(.5, min(mydf$lb)), max(2, max(mydf$ub) ) )+
+      labs(x="Quarter",y="95% Confidence Interval for PRR")+
+      theme(axis.text.x  = element_text(angle=20,size=10),
+            panel.background = element_rect(fill = "white",
+                                            colour = "black",
+                                            size = 0.5, linetype = "solid"),
+            panel.grid.major = element_line(size = 0.25, linetype = 'solid',
+                                            colour = "gray96"), 
+            panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                            colour = "gray96"))+
+      scale_x_datetime('',date_labels="%Y-%m")+
+      geom_errorbar(aes(ymin=lb, ymax=ub), colour="gray24", width=0.25)+
+      # geom_segment(aes(x=xloc, y=ubgap, xend =xloc, yend =ub),arrow = arrow(angle=90,length = unit(0.05, "cm")))+
+      # geom_segment(aes(x=xloc, y=lbgap, xend =xloc, yend =lb),arrow = arrow(angle=90,length = unit(0.05, "cm")))+
+      geom_hline(yintercept=1,linetype='dotted')
+      
+    
+    ggplotly(p, width = 1250, height = 550)
+  })
+  
   
 }
