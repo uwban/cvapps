@@ -4,4 +4,4 @@ This app has been developed by the Data Sciences Unit of RMOD at Health Canada a
 
 ## Database Specifications
 
-This app is connected to a the Health Canada drug/event API.
+This app is connected to the Health Canada drug/event API.https://node.hres.ca/docs.html#drug-event-docs
