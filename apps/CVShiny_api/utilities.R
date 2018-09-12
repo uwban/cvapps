@@ -19,6 +19,7 @@ library(lubridate)
 
 or_together <- function(term_list) {
   or <- "("
+  term_list<-paste0('\"',term_list,'\"')
   
   for (i in 1:(length(term_list) - 1)) {
     or <- paste0(or, term_list[i], '+OR+')
@@ -35,13 +36,20 @@ or_together <- function(term_list) {
 remove_spaces <- function(string) {
   string <- gsub("%", "%20", string)
   string <- gsub("'", "%27", string)
-  string <- gsub(",", "%20", string)
-  string <- gsub("-", "%20", string)
-  string <- gsub("\\/", "", string)
+  #string <- gsub(",", "%20", string)
+  #string <- gsub("-", "%20", string)
+  #string <- gsub("\\/", "", string)
   string <- gsub("!", "", string)
   string <- gsub("&", "", string)
   string <- gsub(' ', '%20', string)
-  #string <- paste0('\"',string,'\"')
+  
+  first_char<-substr(string,1,1)
+  
+  if(first_char=="("){
+    string <- string
+  }else{
+    string<-paste0('\"',string,'\"')
+  }
   
   # # string <- gsub("\}", "\\}", string)
   # # string <- gsub("\[", "\\[", string)
@@ -92,16 +100,6 @@ counter <- function(uri, count_term, key=''){
   results<- content(r, 'parsed')$results
   
   df <- data.frame(category=sapply(results,`[[`,1),doc_count=sapply(results,`[[`,2), stringsAsFactors = FALSE)
-  
-  # df <- data.frame(category=character(),doc_count=integer(), stringsAsFactors = FALSE)
-  # 
-  # for (category in results){
-  #   pair<-data.frame(category$key, category$doc_count, stringsAsFactors = FALSE)
-  #   names(pair)<-c("category","doc_count")
-  #   
-  #   df <- rbind(df, pair)
-  # 
-  #  }
   
   return(df)
 }
@@ -252,28 +250,3 @@ parse_response <- function(uri){
   return(response_final)
 }
 
-#function built for lapply use of response$results, helper function
-#Params:
-#Return:
-parser <- function(response_results){
-  return(length(response_results$`_source`$concomitant) + length(response_results$`_source`$suspect))
-}
-
-#Params:
-#Return:
-drugs_per_report <- function(uri) {
-
-  response <- parse_response(paste0(uri, '&limit=1000'))
-  drugs <- lapply(response$results, parser)
-  drug_df <- as.data.frame(t(as.data.frame(drugs)))
-  print('hel')
-  
-  drug_df %<>%  rename('Number of Drugs' = 'V1') %>%
-    mutate('Number of Reports' = 1)
-  
-  drug_df<- aggregate(drug_df['Number of Reports'], by=drug_df['Number of Drugs'], sum) 
-  
-  return(drug_df)
-  
-  
-}

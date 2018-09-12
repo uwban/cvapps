@@ -120,16 +120,21 @@ shinyServer(function(input, output, session) {
     })
   )
   
-  strtrans <- function(input)
-  {
-    input <- as.character(input)
-    input <- str_pad(input, 9, pad = "0")
-    input <- paste0("\t",input)
+  # strtrans <- function(input)
+  # {
+  #   input <- as.character(input)
+  #   input <- str_pad(input, 9, pad = "0")
+  #   input <- paste0("\t",input)
+  #   
+  #   return(input)
+  # }
+  # 
+  
+  nreports<-reactive({
+    n<-request(current_search$uri)
+    return(n)
+  })
     
-    return(input)
-  }
-  
-  
  
   ##### Output ####
   ##### Construct Current_Query_Table for generic name, brand name, adverse reaction term & date range searched
@@ -166,11 +171,8 @@ shinyServer(function(input, output, session) {
   ##### Create time plot  ###
   
   output$timeplot_title <- renderUI({
-    # search_uri <- create_uri(current_search$startDate, current_search$endDate, gender=current_search$gender, 
-    #                          age=current_search$age, rxn=current_search$rxn, soc=current_search$soc, drug_inv=current_search$drug_inv, drugname=current_search$name, 
-    #                          seriousness=current_search$seriousness_type, search_type=current_search$name_type)
-    # 
-    nreports<-request(current_search$uri)
+   
+    nreports<-nreports()
     
     drug_name<-paste0(current_search$name,collapse=', ')
     rxn <- paste0(current_search$rxn, collapse = ", ")
@@ -327,10 +329,9 @@ shinyServer(function(input, output, session) {
     # other_medically_imp_cond <- counter(current_search$uri, 'other_medically_imp_cond.keyword', api_key)
     # other_medically_imp_cond <- other_medically_imp_cond[(other_medically_imp_cond$category =="true"),]
     # other_medically_imp_cond[1,1] <- 'Other Medically Impaired Condition'
-    
-    serious_reasons <-do.call(rbind,list(congenital_anomaly,death,life_threatening,hosp_required))
-    #rbind(congenital_anomaly, death) %>% rbind(disability) %>% rbind(life_threatening) %>% rbind(hosp_required) %>% rbind(other_medically_imp_cond)
-    
+
+    serious_reasons <-do.call(rbind,list(congenital_anomaly,death,life_threatening,hosp_required,disability))
+    serious_reasons[nrow(serious_reasons) + 1,] = list("Not Specified",nreports()-sum(serious_reasons$doc_count))
     
     gvisBarChart(serious_reasons,
                  xvar = "category",
@@ -672,9 +673,15 @@ shinyServer(function(input, output, session) {
   
   cv_download_reports <- reactive({
     
+    withProgress(message = 'Reformating JSON files to CSV', value = 0, {
+    
+    incProgress(1/3)
+      
     full_report<-parse_response(current_search$uri)%>%
                  select(`_source`)%>%
                  flatten()
+    
+    incProgress(3/4)
     
     colnames(full_report)<-gsub('_source.','',names(full_report))
 
@@ -701,7 +708,10 @@ shinyServer(function(input, output, session) {
 
     return(list(report_data=report_data,
                 col_names=col_names))
+    
   })
+    
+})
   
   output$download_reports <- downloadHandler(
     filename = function() {
