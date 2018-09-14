@@ -1,5 +1,4 @@
 library(googleVis)
-library(jsonlite)
 # list of default google chart colours for plotting, http://there4.io/2012/05/02/google-chart-color-list/
 google_colors = c(
   "#3366CC",
@@ -99,51 +98,29 @@ aboutAuthors <- function() {list(
     box(
       "Daniel Buijs, MSc", br(),
       "Data Scientist, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
+      "Health Canada / Government of Canada", br(),
       "daniel.buijs@hc-sc.gc.ca",
-      width = 4
+      width = 3
     ),
     box(
       "Sophia He, BSc (in progress)", br(),
       "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
-      "yunqingh@sfu.ca",
-      width = 4
+      "Health Canada / Government of Canada", br(),
+      "sophia.he@canada.ca or yunqingh@sfu.ca",
+      width = 3
     ),
     box(
       "Kevin Thai, BSc (in progress)", br(),
       "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
-      "kthai@uwaterloo.ca",
-      width = 4
-    )),
-  fluidRow(
+      "Health Canada / Government of Canada", br(),
+      "kevin.thai@canada.ca or kthai@uwaterloo.ca",
+      width = 3
+    ),
     box(
       "Bryce Claughton, BMath (in progress)", br(),
       "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
-      "bclaught@uwaterloo.ca",
-      width = 3
-    ),
-    box(
-      "Nanqing Zhu, MSc (in progress)", br(),
-      "Jr. Data Scientist, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
-      "nanqing.zhu@mail.mcgill.ca",
-      width = 3
-    ),
-    box(
-      "Jason Jiang, BSc (in progress)", br(),
-      "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
-      "haiyangj@sfu.ca",
-      width = 3
-    ),
-    box(
-      "James Hopkins, BSc", br(),
-      "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
-      "jehopkin@sfu.ca",
+      "Health Canada / Government of Canada", br(),
+      "bryce.claughton2@canada.ca or bclaught@uwaterloo.ca",
       width = 3
     )
   )

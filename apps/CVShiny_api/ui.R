@@ -114,6 +114,7 @@ dashboardPage(
           #htmlOutput(outputId = "timeplot"),
           lineChartOutput("mychart"),
           "Reports by month from Canada Vigilance Adverse Reaction Online Database.",
+          htmlOutput(outputId = "search_url"),
           width = 12
       )
     ),
@@ -254,7 +255,11 @@ dashboardPage(
                         ),
                     div(style="display: inline-block; vertical-align: bottom; height: 54px;",
                         downloadButton(outputId = 'download_reports',
-                                       label = 'Download'))
+                                       label = 'Download')),
+                    selectizeInput('select_column',
+                                   "Select Columns",
+                                   choices=c('Select columns to download'),
+                                   multiple=T)
                     # conditionalPanel(
                     #   "input.search_dataset_type == 'Report Data'",
                     #   uiOutput('column_select_data')),

@@ -87,7 +87,7 @@ shinyServer(function(input, output, session) {
                                        current_search$age, current_search$rxn, current_search$soc, 
                                        current_search$drug_inv, current_search$name, current_search$seriousness, 
                                        current_search$name_type)
-      
+      incProgress(4/9, detail = 'Assembling query string')
       # api_key <- api_key
       
       print(current_search$name)
@@ -104,16 +104,7 @@ shinyServer(function(input, output, session) {
                              current_search$drug_inv)
       
       print(option_list)
-      incProgress(1/9, detail = 'Filtering Report Date Range')
-      
-
-
-      
-      
-      incProgress(1/9, detail = 'Checking for no reports...')
-# 
-
-#       
+      incProgress(7/9, detail = 'Querying results')
 
       
       
@@ -148,8 +139,7 @@ shinyServer(function(input, output, session) {
                 "Adverse Reaction Term:",
                 "System Organ Class:",
                 "Seriousness:",
-                "Date Range:",
-                "Search_URL:"),
+                "Date Range:"),
       values = c(data$name_type %>% toupper(),
                                     paste(data$age[1], 'to', data$age[2], 'including', ifelse(data$filter_estimates_age, 'estimates', '')),
                                     data$gender,
@@ -157,8 +147,7 @@ shinyServer(function(input, output, session) {
                                     paste0(data$rxn, collapse = ", "),
                                     paste0(data$soc, collapse = ", "),
                                     paste0(data$seriousness_type, collapse = ", "),
-                                    paste(data$date_range, collapse = " to "),
-                                    data$uri),
+                                    paste(data$date_range, collapse = " to ")),
                          stringsAsFactors = FALSE)
     
     result$values["" == result$values] <- "Not Specified"
@@ -191,6 +180,11 @@ shinyServer(function(input, output, session) {
     plottitle <- paste0("Drug Adverse Event Reports for ", drug_name, " and ", rxn_name, " (", nreports, " reports) from ",input$daterange[1], " to ",input$daterange[2])
     h3(strong(plottitle))
     })
+  
+  output$search_url <- renderUI({
+    url <- current_search$uri
+    HTML(paste0("Search URL: <a href = ", url, ">", url, "</a>"))
+  })
   
   timeDataSelection <- reactive({
 
@@ -326,11 +320,11 @@ shinyServer(function(input, output, session) {
     hosp_required <- hosp_required[(hosp_required$category =="true"),]
     hosp_required[1,1] <- 'Hospital Required'
     
-    # other_medically_imp_cond <- counter(current_search$uri, 'other_medically_imp_cond.keyword', api_key)
-    # other_medically_imp_cond <- other_medically_imp_cond[(other_medically_imp_cond$category =="true"),]
-    # other_medically_imp_cond[1,1] <- 'Other Medically Impaired Condition'
+    other_medically_imp_cond <- counter(current_search$uri, 'other_medically_imp_cond.keyword', api_key)
+    other_medically_imp_cond <- other_medically_imp_cond[(other_medically_imp_cond$category =="true"),]
+    other_medically_imp_cond[1,1] <- 'Other Medically Impaired Condition'
 
-    serious_reasons <-do.call(rbind,list(congenital_anomaly,death,life_threatening,hosp_required,disability))
+    serious_reasons <-do.call(rbind,list(congenital_anomaly,death,life_threatening,hosp_required,disability,other_medically_imp_cond))
     serious_reasons[nrow(serious_reasons) + 1,] = list("Not Specified",nreports()-sum(serious_reasons$doc_count))
     
     gvisBarChart(serious_reasons,
@@ -670,6 +664,31 @@ shinyServer(function(input, output, session) {
   
   
 ############# Download Tab
+  observe({
+    x<-input$search_dataset_type
+    if(x=='Report Data'){
+      choices<-c('death','mah_no','source','outcome',
+                 'report_id','report_no','disability',
+                 'version_no','datreceived','report_type','seriousness',
+                 'hosp_required','reporter_type','datintreceived','patient_gender',
+                 'patient_weight','life_threatening','congenital_anomaly','patient_weight_unit',
+                 'report_drugname_suspect','report_ingredient_suspect','n_drugs_per_report',
+                 'patient_age','patient_age_y','patient_age_unit','patient_height','patient_height_unit','patient_age_group')
+      updateSelectizeInput(session,'select_column',choices=choices,server=T)
+    }else if (x=='Drug Data'){
+      choices<-c("report_id","druginvolv_code","dose_unit_fr","druginvolv_fr","seq_therapy","drug_product_id",
+                 "freq_time_unit_eng","seq_product","frequency_time_fr","freq_time","routeadmin_code",
+                 "ingredients","therapy_duration_unit_eng","freq_time_unit_fr","therapy_duration_unit_fr",
+                 "unit_dose_qty","therapy_duration_unit_code","frequency_time_eng","dose_unit_eng","freq_time_unit_code",
+                 "drugname","druginvolv_eng","routeadmin_fr","routeadmin_eng","indication_name_eng","indication_name_fr",
+                 "therapy_duration","frequency","dosageform_eng","dosageform_fr")
+      updateSelectizeInput(session,'select_column',choices=choices,server=T)
+    }else{
+      choices<-c('report_id','meddra_version','reaction_id','soc_name','pt_name')
+      updateSelectizeInput(session,'select_column',choices=choices,server=T) 
+      
+    }
+  })
   
   cv_download_reports <- reactive({
     
@@ -692,17 +711,21 @@ shinyServer(function(input, output, session) {
        report_data$report_drugname_suspect<-sapply(report_data$report_drugname_suspect,paste,collapse=',',USE.NAMES = F)
        report_data$report_ingredient_suspect<-sapply(report_data$report_ingredient_suspect,paste,collapse=',',USE.NAMES = F)
        
+       report_data<-report_data%>%select(input$select_column)
        col_names<-colnames(report_data)
        
     }
     else if(input$search_dataset_type == "Drug Data"){
-       report_data<-full_report%>%select(report_id,report_drug_detail)%>%
+       report_data<-full_report%>%select(report_drug_detail)%>%
                                   unnest(report_drug_detail)
+       
+       report_data<-report_data%>%select(input$select_column)
        col_names<-colnames(report_data)
     }
     else if(input$search_dataset_type == "Reaction Data"){
        report_data<-full_report%>%select(report_id,reactions)%>%
                                   unnest(reactions)
+       report_data<-report_data%>%select(input$select_column)
        col_names<-colnames(report_data)
     }
 
@@ -730,6 +753,7 @@ shinyServer(function(input, output, session) {
     }
   )
   
+ 
   
   # output$column_select_drug<-renderUI({
   #   selectizeInput("column_select_drug",

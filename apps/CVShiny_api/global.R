@@ -62,10 +62,43 @@ topings_cv <- rbind(concomitants, suspects)[,1] %>% unique() %>% sort()
 
 #auto lists for both soc and pt (right now there is no soc in elastic - Dan needs to add before soc_choices works)
 soc_choices <- counter(uri, 'reaction_soc.keyword&limit=10000', api_key)[,1]%>%sort()
-pt_choices <- counter(uri, 'reaction_pt.keyword&limit=100000', api_key)[,1] %>% sort()
+smq_body<-'{
+  "aggs" : {
+        "smq_term" : {
+            "terms" : {
+                "field" : "smq_name.keyword",
+                "size":10000
+            }
+        }
+    }
+}'
+  
+smq_list<-Search(index='meddra_pt',body=smq_body,size=0)$aggregations$smq_term$buckets
+smq<-sapply(smq_list,'[[',1)%>%sort()
+  
+pt<-counter(uri, 'reaction_pt.keyword&limit=100000', api_key)[,1] %>% sort()
 
-max_date<-as.Date(Sys.time(),format='%Y-%m-%d')
-max_meddra<-'v.21.0'
+pt_choices<-c(pt,smq)
+
+
+#from elasticsearch, take the maxiumn receivedate from all reports:
+body_date<-'{
+    "aggs" : {
+        "max_date" : { "max" : { "field" : "datreceived" } }
+    }
+}'
+
+max_date_res<-Search(index='drug_event',body=body_date,size=0)$aggregations$max_date[[2]]
+max_date<-as.Date(max_date_res,format='%Y-%m-%d')
+
+body_med<-'{
+    "aggs" : {
+        "max_version" : { "max" : { "field" : "meddra_version" } }
+    }
+}'
+
+max_version<-Search(index='meddra_pt',body=body_med,size=0)$aggregations$max_version[[1]]
+max_meddra<-paste0('v.',max_version)
 
 #populate pt_hlt relationship table:
 
