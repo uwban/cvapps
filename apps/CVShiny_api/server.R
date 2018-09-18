@@ -183,7 +183,7 @@ shinyServer(function(input, output, session) {
   
   output$search_url <- renderUI({
     url <- current_search$uri
-    HTML(paste0("Search URL: <a href = ", url, ">", url, "</a>"))
+    HTML(paste0('Search URL: <a href = ', url,' target="_blank">', url, '</a>'))
   })
   
   timeDataSelection <- reactive({
@@ -326,6 +326,7 @@ shinyServer(function(input, output, session) {
 
     serious_reasons <-do.call(rbind,list(congenital_anomaly,death,life_threatening,hosp_required,disability,other_medically_imp_cond))
     serious_reasons[nrow(serious_reasons) + 1,] = list("Not Specified",nreports()-sum(serious_reasons$doc_count))
+    serious_reasons$doc_count<-ifelse(serious_reasons$doc_count<0,0,serious_reasons$doc_count)
     
     gvisBarChart(serious_reasons,
                  xvar = "category",
@@ -667,8 +668,8 @@ shinyServer(function(input, output, session) {
   observe({
     x<-input$search_dataset_type
     if(x=='Report Data'){
-      choices<-c('death','mah_no','source','outcome',
-                 'report_id','report_no','disability',
+      choices<-c('report_id','report_no','disability',
+                 'death','mah_no','source','outcome',
                  'version_no','datreceived','report_type','seriousness',
                  'hosp_required','reporter_type','datintreceived','patient_gender',
                  'patient_weight','life_threatening','congenital_anomaly','patient_weight_unit',
@@ -711,7 +712,12 @@ shinyServer(function(input, output, session) {
        report_data$report_drugname_suspect<-sapply(report_data$report_drugname_suspect,paste,collapse=',',USE.NAMES = F)
        report_data$report_ingredient_suspect<-sapply(report_data$report_ingredient_suspect,paste,collapse=',',USE.NAMES = F)
        
+       if(!is.null(input$select_column)){
        report_data<-report_data%>%select(input$select_column)
+       }else{
+       report_data<-report_data
+       }
+       
        col_names<-colnames(report_data)
        
     }
@@ -719,13 +725,24 @@ shinyServer(function(input, output, session) {
        report_data<-full_report%>%select(report_drug_detail)%>%
                                   unnest(report_drug_detail)
        
-       report_data<-report_data%>%select(input$select_column)
+       if(!is.null(input$select_column)){
+         report_data<-report_data%>%select(input$select_column)
+       }else{
+         report_data<-report_data
+       }
+       
        col_names<-colnames(report_data)
     }
     else if(input$search_dataset_type == "Reaction Data"){
        report_data<-full_report%>%select(report_id,reactions)%>%
                                   unnest(reactions)
-       report_data<-report_data%>%select(input$select_column)
+       
+       if(!is.null(input$select_column)){
+         report_data<-report_data%>%select(input$select_column)
+       }else{
+         report_data<-report_data
+       }
+       
        col_names<-colnames(report_data)
     }
 
