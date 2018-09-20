@@ -159,7 +159,7 @@ create_uri <- function(startDate, endDate, gender='All', age=c(0, 125), rxn=NULL
   search_uri <- paste0(search_uri, 'datintreceived:[', toString(startDate), '+TO+', toString(endDate), ']')
   
 
-  if(age[1] != 0 & age[2] != 125) {
+  if(age[1] != 0 | age[2] != 125) {
     search_uri <- paste0(search_uri, '+AND+patient_age_y:', '[', age[1], '+TO+', age[2], ']')
   }
 
@@ -189,6 +189,13 @@ create_uri <- function(startDate, endDate, gender='All', age=c(0, 125), rxn=NULL
   else if(drug_inv == "Concomitant" & !is.null(drugname) & search_type == 'ingredient'){
     search_uri <- paste0(search_uri, '+AND+report_ingredient_concomitant:', remove_spaces(drugname))
   }
+  else if (drug_inv =='Any'& !is.null(drugname) & search_type == 'ingredient'){
+    search_uri <- paste0(search_uri, '+AND+(report_ingredient_suspect:', remove_spaces(drugname),'+OR+report_ingredient_concomitant:',
+                         remove_spaces(drugname),')')
+  }else if(drug_inv =='Any'& !is.null(drugname) & search_type == 'brand'){
+    search_uri <- paste0(search_uri, '+AND+(report_drugname_suspect:', remove_spaces(drugname),'+OR+report_drugname_concomitant:',
+                         remove_spaces(drugname),')')
+  }
   # else if ( !is.null(drugname)){
   #   search_uri <- paste0('+AND+report_drug.drugname:', remove_spaces(drugname))
   # 
@@ -198,10 +205,10 @@ create_uri <- function(startDate, endDate, gender='All', age=c(0, 125), rxn=NULL
   if(!is.null(seriousness)){
     
     if(seriousness == 'Death') {
-      search_uri <- paste0(search_uri, '+AND+death:1')
+      search_uri <- paste0(search_uri, '+AND+death:true')
     }
     else if(seriousness == 'Serious(Excluding Death)') {
-      search_uri <- paste0(search_uri, '+AND+!death:1+AND+seriousness:Yes')
+      search_uri <- paste0(search_uri, '+AND+!death:true+AND+seriousness:Yes')
     }
   }
   

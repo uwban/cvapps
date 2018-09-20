@@ -54,7 +54,7 @@ shinyServer(function(input, output, session) {
       print(endDate)
       dateRange <- c(startDate, endDate)
       print(dateRange)
-      dateRange1 <- dateRange
+      
       #search variables
       
       
@@ -85,7 +85,7 @@ shinyServer(function(input, output, session) {
       
       current_search$uri <- create_uri(current_search$startDate, current_search$endDate, current_search$gender, 
                                        current_search$age, current_search$rxn, current_search$soc, 
-                                       current_search$drug_inv, current_search$name, current_search$seriousness, 
+                                       current_search$drug_inv, current_search$name, current_search$seriousness_type, 
                                        current_search$name_type)
       incProgress(4/9, detail = 'Assembling query string')
       # api_key <- api_key
@@ -94,14 +94,15 @@ shinyServer(function(input, output, session) {
 
 
       
-      option_list <- c(      current_search$age,
+      option_list <- c(      
                              #current_search$age_estimate,
                              current_search$dateRange,
                              current_search$gender,
                              current_search$age,
                              current_search$rxn,
                              current_search$soc,
-                             current_search$drug_inv)
+                             current_search$drug_inv,
+                             current_search$seriousness_type)
       
       print(option_list)
       incProgress(7/9, detail = 'Querying results')
@@ -210,7 +211,7 @@ shinyServer(function(input, output, session) {
     dateSequence <- get_date_sequence(current_search$startDate, current_search$endDate, time_period)
     
     data <- get_timechart_data(time_period, dateSequence, current_search$gender, current_search$age, current_search$rxn,
-                               current_search$soc, current_search$drug_inv, current_search$name, current_search$seriousness, current_search$name_type)
+                               current_search$soc, current_search$drug_inv, current_search$name, current_search$seriousness_type, current_search$name_type)
     
     
     
