@@ -24,13 +24,7 @@ shinyServer(function(input, output, session) {
   ##### Reactive data processing
   # Data structure to store current query info
   current_search <- reactiveValues()
-  #subset_cv <- reactiveValues()
-  selected_ids <- reactiveValues()
-  report_tab <- reactiveValues()
-  result_dataframes <- reactiveValues()
-  
- 
-  
+
   
   # We need to have a reactive structure here so that it activates upon loading
   reactiveSearchButton <- reactive(as.vector(input$searchButton))
@@ -90,7 +84,24 @@ shinyServer(function(input, output, session) {
       incProgress(4/9, detail = 'Assembling query string')
       # api_key <- api_key
       
-      print(current_search$name)
+      n<-request(current_search$uri)
+      
+      if (n == 0) {
+        setProgress(1)
+        showModal(modalDialog(
+          title = list(icon("exclamation-triangle"), "No results found!"),
+          "There were no reports matching your query. Please make another selection",
+          size = "s",
+          easyClose = TRUE))
+        
+        current_search$name<-NULL
+        
+        current_search$uri <- create_uri(current_search$startDate, current_search$endDate, current_search$gender, 
+                                         current_search$age, current_search$rxn, current_search$soc, 
+                                         current_search$drug_inv, current_search$name, current_search$seriousness_type, 
+                                         current_search$name_type)
+        
+      }
 
 
       
@@ -267,16 +278,22 @@ shinyServer(function(input, output, session) {
   seriousplot_data <- reactive({
 
     
-    search_uri <- create_uri(current_search$startDate, current_search$endDate, gender=current_search$gender, 
-                             age=current_search$age, rxn=current_search$rxn, soc=current_search$soc, drug_inv=current_search$drug_inv, drugname=current_search$name, 
-                             seriousness=current_search$seriousness_type, search_type=current_search$name_type)
+    # search_uri <- create_uri(current_search$startDate, current_search$endDate, gender=current_search$gender, 
+    #                          age=current_search$age, rxn=current_search$rxn, soc=current_search$soc, drug_inv=current_search$drug_inv, drugname=current_search$name, 
+    #                          seriousness=current_search$seriousness_type, search_type=current_search$name_type)
+    search_uri<-current_search$uri
     
     death_count <- counter(search_uri, 'outcome.keyword', api_key)
     death_count <- death_count[(death_count$category =="Death"),]
     seriousness_count <- counter(search_uri, 'seriousness.keyword', api_key)
     
     #remove the death counts and rename 
+    if (length(death_count$category)!=0){
     seriousness_count[1,2] <- seriousness_count[1,2] - death_count[1,2]
+    }else{
+    seriousness_count[1,2] <- seriousness_count[1,2]
+    }
+    
     seriousness_count[1,1] <- 'Serious(excluding death)'
     seriousness_count[2,1] <- 'Non-Serious'
 
@@ -424,27 +441,7 @@ shinyServer(function(input, output, session) {
     final_graph
   })
   
-  #### Data about Drugs
-  # drugDataSelection <- reactive({
-  #   n_ids <- selected_ids$ids %>% nrow()
-  #   
-  #   if (nrow(selected_ids$ids) > 0)
-  #   {
-  #     data <- semi_join(cv_report_drug, selected_ids$ids, by = "report_id", copy = T)
-  #     #%>%       left_join(cv_report_drug_indication, by = c("REPORT_DRUG_ID", "report_id", "drug_product_id", "drugname"))
-  #   }
-  #   else
-  #   {
-  #     data <- NULL
-  #     data <- cv_report_drug
-  #     current_search$name = ""
-  #     current_search$rxn = ""
-  #   }
-  #   
-  #   data
-  # })
-  
-  
+
   
   ## indication ###
   indication_data <- reactive({
@@ -468,6 +465,7 @@ shinyServer(function(input, output, session) {
   suspect_data <- reactive({    
 
     data <- counter(current_search$uri, 'report_drugname_suspect.keyword&limit=20', api_key)
+    
     data
 
     
@@ -475,7 +473,6 @@ shinyServer(function(input, output, session) {
   ### concomitant drug ###
   concomitant_data <- reactive({
 
-    print('hello')
     data <- counter(current_search$uri, 'report_drugname_concomitant.keyword&limit=20', api_key)
     data
   })
@@ -483,6 +480,7 @@ shinyServer(function(input, output, session) {
 #There is a small chance that just adding the top 1000 from both might not give the correct top 20 (if one appears high on suspect, but not in top 1000 of concomitant for instance),
   #this possibility seems almost Infinitesimally small though
   all_data <- reactive({
+    
     concomitant <- concomitant_data()
     suspect <- suspect_data()
     
@@ -526,6 +524,7 @@ shinyServer(function(input, output, session) {
     # When generic, brand & reaction names are unspecified, count number of UNIQUE reports associated with each durg_name
     #    (some report_id maybe duplicated due to multiple REPORT_DRUG_ID & drug_product_id which means that patient has diff dosage/freq)
     # the top drugs reported here might be influenced by such drug is originally most reported among all reports
+    
     gvisBarChart_HCSC(concomitant_data()[1:20,], "category", "doc_count", google_colors[4])
   })
   
@@ -646,10 +645,11 @@ shinyServer(function(input, output, session) {
   ### outcome plot ###
   outcomeplot_data <- reactive({
 
-    search_uri <- create_uri(current_search$startDate, current_search$endDate, gender=current_search$gender, 
-                             age=current_search$age, rxn=current_search$rxn, soc=current_search$soc, drug_inv=current_search$drug_inv, drugname=current_search$name, 
-                             seriousness=current_search$seriousness_type, search_type=current_search$name_type)
+    # search_uri <- create_uri(current_search$startDate, current_search$endDate, gender=current_search$gender, 
+    #                          age=current_search$age, rxn=current_search$rxn, soc=current_search$soc, drug_inv=current_search$drug_inv, drugname=current_search$name, 
+    #                          seriousness=current_search$seriousness_type, search_type=current_search$name_type)
     
+    search_uri<-current_search$uri
     outcome_count <- counter(search_uri, 'outcome.keyword', api_key)
     return(outcome_count)
   })
