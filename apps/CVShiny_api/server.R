@@ -219,9 +219,10 @@ shinyServer(function(input, output, session) {
       time_function <- function(x) {months(x)}
     }
     
-    dateSequence <- get_date_sequence(current_search$startDate, current_search$endDate, time_period)
+    dateSequence_start <- get_date_sequence_start(current_search$startDate, current_search$endDate, time_period)
+    dateSequence_end <- get_date_sequence_end(current_search$startDate, current_search$endDate, time_period)
     
-    data <- get_timechart_data(time_period, dateSequence, current_search$gender, current_search$age, current_search$rxn,
+    data <- get_timechart_data(time_period, dateSequence_start,dateSequence_end, current_search$gender, current_search$age, current_search$rxn,
                                current_search$soc, current_search$drug_inv, current_search$name, current_search$seriousness_type, current_search$name_type)
     
     
@@ -233,7 +234,7 @@ shinyServer(function(input, output, session) {
     
     rownames(df) <- c()
 
-    dateSequence <- dateSequence[1:(length(dateSequence) - 1)] 
+    dateSequence <- dateSequence_start[1:(length(dateSequence_start) - 1)] 
     if(time_period == 'year'){
       dateSequence <- format(as.Date(dateSequence), "%Y")
     }

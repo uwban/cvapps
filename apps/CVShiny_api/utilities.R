@@ -219,13 +219,13 @@ create_uri <- function(startDate, endDate, gender='All', age=c(0, 125), rxn=NULL
 #gets all time chart dat, splits by year and seriousness
 #Params: current_search params - could be refactored to take a list
 #Return: 
-get_timechart_data <- function(time_period, date_list, gender, age, rxn, soc, drug_inv, drugname, seriousness, name_type, ...){
+get_timechart_data <- function(time_period,date_start,date_end, gender, age, rxn, soc, drug_inv, drugname, seriousness, name_type, ...){
   result <- list()
   
   
-  for (i in 1:(length(date_list)- 1)){
+  for (i in 1:(length(date_start)- 1)){
 
-        search_uri<- create_uri(date_list[i], date_list[i+1], gender, age, rxn, soc, drug_inv, drugname, seriousness, name_type)
+        search_uri<- create_uri(date_start[i], date_end[i+1], gender, age, rxn, soc, drug_inv, drugname, seriousness, name_type)
         
     search_uri <- add_term(search_uri)
     result[[i]] <- search_uri
@@ -237,17 +237,32 @@ get_timechart_data <- function(time_period, date_list, gender, age, rxn, soc, dr
 #
 #Params: startDate - where sequence should start(inclusive), endDate - where Sequence should end (inclusive), time_period - month or year to split sequence by
 #Return: dateSequence - interval of dates by time period specified, used to loop over and create a list of uri's for main graph generation
-get_date_sequence <- function(startDate, endDate, time_period) {
-  
+get_date_sequence_start <- function(startDate, endDate, time_period) {
   
   start_seq <- floor_date(as.Date(startDate), time_period)
-  
   
   if(time_period == 'year') {
     dateSequence <- seq(start_seq, as.Date(endDate) %m+% years(1), by=time_period)
   }
   else {
     dateSequence <- seq(start_seq, as.Date(endDate) %m+% months(1), by=time_period)
+  }
+  
+  dateSequence[1] <- as.Date(startDate)
+  dateSequence[length(dateSequence)] <- endDate
+  
+  return(dateSequence)
+}
+
+get_date_sequence_end <- function(startDate, endDate, time_period) {
+  
+  start_seq <- floor_date(as.Date(startDate), time_period)
+  
+  if(time_period == 'year') {
+    dateSequence <- seq(start_seq, as.Date(endDate) %m+% years(1), by=time_period)-1
+  }
+  else {
+    dateSequence <- seq(start_seq, as.Date(endDate) %m+% months(1), by=time_period)-1
   }
   
   dateSequence[1] <- as.Date(startDate)
