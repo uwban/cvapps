@@ -256,12 +256,9 @@ shinyServer(function(input, output, session) {
   ### Reporterplot ###
   reportertable <- reactive({
 
-    
-    # search_uri <- create_uri(current_search$startDate, current_search$endDate, gender=current_search$gender, 
-    #                          age=current_search$age, rxn=current_search$rxn, soc=current_search$soc, drug_inv=current_search$drug_inv, drugname=current_search$name, 
-    #                          seriousness=current_search$seriousness_type, search_type=current_search$name_type)
-    
     reporter_count <- counter(current_search$uri, 'reporter_type.keyword', api_key)
+    reporter_count[nrow(reporter_count) + 1,] = list("Not Specified",nreports()-sum(reporter_count$doc_count))
+    reporter_count$doc_count<-ifelse(reporter_count$doc_count<0,0,reporter_count$doc_count)
     return(reporter_count)
   })
   
@@ -279,9 +276,6 @@ shinyServer(function(input, output, session) {
   seriousplot_data <- reactive({
 
     
-    # search_uri <- create_uri(current_search$startDate, current_search$endDate, gender=current_search$gender, 
-    #                          age=current_search$age, rxn=current_search$rxn, soc=current_search$soc, drug_inv=current_search$drug_inv, drugname=current_search$name, 
-    #                          seriousness=current_search$seriousness_type, search_type=current_search$name_type)
     search_uri<-current_search$uri
     
     death_count <- counter(search_uri, 'outcome.keyword', api_key)
@@ -364,7 +358,11 @@ shinyServer(function(input, output, session) {
   sexplot_data <- reactive({
 
     sex_data <- counter(current_search$uri, 'patient_gender.keyword', api_key)
-    
+    if(nrow(sex_data[sex_data$category=='Not specified',])!=0){
+    sex_data[sex_data$category=='Not specified','doc_count']<-nreports()-sum(sex_data$doc_count)+sex_data$doc_count[sex_data$category=='Not specified']
+    }else{
+    sex_data[nrow(sex_data) + 1,] = list("Not specified",nreports()-sum(sex_data$doc_count)) 
+    }
     sex_data
   })
   
