@@ -28,7 +28,7 @@ library(bcp)
 library(ggfortify)
 
 
-
+source('common_ui.R')
 source("stats_functions.R")
 #### Data pre-processing ####
 
@@ -60,52 +60,11 @@ add_api_key<-function(url){
 ing_choices<-paste0(base_url,'?count=report_ingredient_suspect.keyword')%>%
              add_api_key()%>%
              hc_result(F)%>%
-             dplyr::pull(key)%>%
-             sort()
+             dplyr::pull(key)
 
 pt_choices<-paste0(base_url,'?count=reaction_pt.keyword')%>%
   add_api_key()%>%
   hc_result(F)%>%
-  dplyr::pull(key)%>%
-  sort()
+  dplyr::pull(key)
 
-aboutAuthors <- function() {list(
-  tags$strong("Authors:"),
-  fluidRow(
-    box(
-      "Daniel Buijs, MSc", br(),
-      "Data Science Manager, Health Products and Food Branch", br(),
-      "Health Canada / Government of Canada", br(),
-      "daniel.buijs@canada.ca",
-      width = 3
-    ),
-    box(
-      "Nanqing zhu, MSc", br(),
-      "Data Scientist, Health Products and Food Branch", br(),
-      "Health Canada / Government of Canada", br(),
-      "nanqing.zhu@canada.ca",
-      width = 3
-    ),
-    box(
-      "Sophia He, BSc (in progress)", br(),
-      "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Health Canada / Government of Canada", br(),
-      "yunqingh@sfu.ca",
-      width = 3
-    ),
-    box(
-      "Kevin Thai, BSc (in progress)", br(),
-      "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Health Canada / Government of Canada", br(),
-      "kthai@uwaterloo.ca",
-      width = 3
-    ),
-    box(
-      "Bryce Claughton, BMath (in progress)", br(),
-      "Jr. Data Scientist Co-op, Health Products and Food Branch", br(),
-      "Health Canada / Government of Canada", br(),
-      "bclaught@uwaterloo.ca",
-      width = 3
-    )
-  )
-)}
+

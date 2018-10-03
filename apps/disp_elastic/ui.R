@@ -1,5 +1,5 @@
 ui <- dashboardPage(
-  dashboardHeader(title = titleWarning("Shiny DISP (v0.30)"),
+  dashboardHeader(title = titleWarning("Shiny DISP (version 2.1"),
                   titleWidth = 700),
   
   dashboardSidebar(
