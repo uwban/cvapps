@@ -67,4 +67,10 @@ pt_choices<-paste0(base_url,'?count=reaction_pt.keyword')%>%
   hc_result(F)%>%
   dplyr::pull(key)
 
+#updated date:
+date<-paste0(base_url,'?count=datintreceived')%>%
+  add_api_key()%>%
+  hc_result(F)
 
+max_date<-max(date$key_as_string)%>%as.Date(format='%Y-%m-%d')
+  

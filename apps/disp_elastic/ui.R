@@ -1,5 +1,5 @@
 ui <- dashboardPage(
-  dashboardHeader(title = titleWarning("Shiny DISP (version 2.1"),
+  dashboardHeader(title = titleWarning("Shiny DISP (version 2.1)"),
                   titleWidth = 700),
   
   dashboardSidebar(
@@ -25,12 +25,12 @@ ui <- dashboardPage(
       menuItem("Dynamic PRR", tabName = "dnprr", icon = icon("equalizer",lib = "glyphicon")),
       menuItem("Change Point Analysis", tabName = "cpa", icon = icon("superscript")),
       #menuItem("Likelihood Analysis", tabName = "llr", icon = icon("industry")),
+      menuItem("Documentation", tabName = "Documentation", icon = icon("archive")),
+      menuItem("About", tabName = "aboutinfo", icon = icon("info"), selected = TRUE),
       tags$h3(strong("Current Query:")),
       tableOutput("current_search"),
       downloadButton(outputId = "pt_data_dl",
-                     label = "Export PT data"),
-      menuItem("Documentation", tabName = "Documentation", icon = icon("archive")),
-      menuItem("About", tabName = "aboutinfo", icon = icon("info"), selected = TRUE)
+                     label = "Export Data")
     )
   ), 
   
@@ -39,11 +39,12 @@ ui <- dashboardPage(
     tabItems(
       tabItem(tabName = "data",
               fluidRow(
-                
-                column(12,
-                       h3(textOutput("current_pt_title")),
-                       plotlyOutput( "timeplot_pt"))
-                ),
+              box(htmlOutput("current_pt_title"),
+                  plotlyOutput( "timeplot_pt"),
+                  htmlOutput(outputId = "search_url"),
+               width=12,solidHeader = TRUE
+               )
+              ),
               
                fluidRow(
                   tabBox(id="tabbox",width=12,
@@ -67,31 +68,33 @@ ui <- dashboardPage(
               
       ),
       tabItem(tabName="dnprr",
-              fluidRow(width=12,
-              h3(textOutput("current_dpnrr_title")),
-              plotlyOutput( "dpnrr_plot")
-              ),
+              fluidRow(
+              box(
+              htmlOutput("current_dpnrr_title"),
+              plotlyOutput( "dpnrr_plot"),
+              width=12,solidHeader = TRUE
+              )),
                 
-              fluidRow(width=12,
-                       DT::dataTableOutput("dpnrr_table")
-                       )
-              ),
+              fluidRow(
+                box(DT::dataTableOutput("dpnrr_table"),
+                    width=12)
+                )),
     
       tabItem(tabName="cpa",
               tabsetPanel(
                 tabPanel("Change in Mean Analysis",
-                         fluidRow(column(width=12,
-                                         h3(textOutput("cpa_mean_title")),
-                                         plotlyOutput('cpa_mean')),
-                                  column(tableOutput('cpa_mean_txt'),width=6))),
+                         fluidRow(box(width=12,solidHeader = TRUE,
+                                         htmlOutput("cpa_mean_title"),
+                                         plotlyOutput('cpa_mean'))),
+                          fluidRow(column(tableOutput('cpa_mean_txt'),width=6))),
                 tabPanel("Change in Variance Analysis",
-                         fluidRow(column(width=12,
-                                         h3(textOutput("cpa_var_title")),
+                         fluidRow(box(width=12,solidHeader = TRUE,
+                                         htmlOutput("cpa_var_title"),
                                          plotlyOutput('cpa_variance'))),
                          fluidRow(column(tableOutput('cpa_variance_txt'),width=6))),
                 tabPanel("Bayesian Analysis",
-                         fluidRow(column(width=12,
-                                         h3(textOutput("bcp_title")),
+                         fluidRow(column(width=12,solidHeader = TRUE,
+                                         htmlOutput("bcp_title"),
                                          plotOutput('bcpa'))),
                          fluidRow(column(
                            tableOutput('bcpa_txt'),width=6))
@@ -105,16 +108,12 @@ ui <- dashboardPage(
       #         fluidRow(width=12,tableOutput('llr_txt'))),
       
       tabItem(tabName = "Documentation",
-              fluidRow(
-                box(
-                  tabPanel(
-                    "Documentation",
-                    withMathJax(includeMarkdown("/home/shared/DISP data/CopyOfDISP about/DISP_about.md")),
-                    tags$br(),
-                    width = 12),
-                  width=12
+              tabsetPanel(type='tabs',
+                    tabPanel("DISP Intro",
+                    withMathJax(includeMarkdown("/home/shared/DISP data/CopyOfDISP about/DISP_about.md"))),
+                    tabPanel("CPA Intro")
                 )
-              )
+              
       ),
       
       tabItem(tabName = "aboutinfo", box(
@@ -138,12 +137,12 @@ ui <- dashboardPage(
           "</p>",
           "<br>",
           "<p>",
-          "<strong>Data last updated: 2018-03-31</strong><br>",
-          "<strong>MedDRA version: 20.0</strong><br>",
+          "<strong>Data last updated: ",max_date,"</strong><br>",
+          "<strong>MedDRA version: 21.0</strong><br>",
           "Data provided by the Canada Vigilance Adverse Reaction Online Database. The recency of the data is therefore ",
           "dependent on when the data source is updated, and is the responsibility of the Canada Vigilance Program. ",
           "For more information, please refer to ",
-          "<a href = \"https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database.html\">",
+          "<a href = \"https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database.html\" target='_blank'>",
           "https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database.html</a>.",
           "</p>")),
         aboutAuthors()

@@ -32,6 +32,7 @@ search_input<-reactiveValues(
       
     }
     
+    
 })
   
   
@@ -127,7 +128,8 @@ cpa_data<-reactive({
   
  
   return(list(datax=datax,
-              datax2=datax2))
+              datax2=datax2,
+              url=cpa))
   
 })
 
@@ -220,9 +222,14 @@ dnprr_cal<-reactive({
 
 
 
-
 ########## Output
   # Display what query was searched
+
+ output$search_url <- renderUI({
+  url <- cpa_data()$url
+  HTML(paste0('Search URL: <a href = ', url,' target="_blank">', url, '</a>'))
+})
+
 
   output$current_search <- renderTable({
     result <- data.frame(names = c("Ingredient Name:",
@@ -234,14 +241,16 @@ dnprr_cal<-reactive({
     result
   }, include.colnames = FALSE)
   
+  
   output$pt_data_dl <- downloadHandler(
     filename = function() {
       current_drug <- search_input$drug
       current_drug <- gsub(" ", "_", current_drug)
-      paste0('pt_data_', current_drug, '.csv')
+      current_pt<-gsub(" ","_",search_input$pt)
+      paste0('DISP_data_', current_drug,'&',current_pt,'.csv')
     },
     content = function(file) {
-      write.csv(disp_result()$all, file, row.names=FALSE)
+      write.csv(time_data_pt()%>%dplyr::select(-key), file, row.names=FALSE)
     }
   )
   
@@ -298,8 +307,9 @@ dnprr_cal<-reactive({
   })
 
   
-  output$current_pt_title<- renderText({
-    paste("Non-Cumulative Report Count Time Plot for:",search_input$drug,'&',search_input$pt)
+  output$current_pt_title<- renderUI({
+    title<-paste("Non-Cumulative Report Count Time Plot for:",search_input$drug,'&',search_input$pt)
+    h3(strong(title))
   })
   
   
@@ -324,8 +334,8 @@ dnprr_cal<-reactive({
   })
  
  ###Change of Point analysis output:
-  output$cpa_mean_title<- renderText({
-    paste("Change of Point Mean Analysis for:",search_input$drug,'&',search_input$pt)
+  output$cpa_mean_title<- renderUI({
+    h3(strong(paste("Change of Point Mean Analysis for:",search_input$drug,'&',search_input$pt)))
   })
 
   output$cpa_mean<-renderPlotly({
@@ -404,8 +414,8 @@ dnprr_cal<-reactive({
   },colnames=F)
   
   
-  output$cpa_var_title<- renderText({
-    paste("Change of Point Variance Analysis for:",search_input$drug,'&',search_input$pt)
+  output$cpa_var_title<- renderUI({
+    h3(strong(paste("Change of Point Variance Analysis for:",search_input$drug,'&',search_input$pt)))
   })
   
   output$cpa_variance<-renderPlotly({
@@ -481,8 +491,8 @@ dnprr_cal<-reactive({
  },colnames=F)
   
  
-  output$bcp_title<- renderText({
-    paste("Bayesian Changepoint Analysis for:",search_input$drug,'&',search_input$pt)
+  output$bcp_title<- renderUI({
+    h3(strong(paste("Bayesian Changepoint Analysis for:",search_input$drug,'&',search_input$pt)))
   })
   
   output$bcpa<-renderPlot({
@@ -498,26 +508,29 @@ dnprr_cal<-reactive({
   })
   
   output$bcpa_txt<-renderTable({
-    count_table<-cpa_data()$datax
-    check<-nrow(count_table)
+    data2<-cpa_data()$datax
+    check<-nrow(data2)
     
     if (check <2){
       data2<-data.frame(Error='there is not enough data points for changepoint analysis')
     }else{
+    
     data<-cpa_cal()$bcp
-    data2<-cpa_data()$datax
     
     data2$postprob<-data$posterior.prob
-    data2<-data2%>%arrange(desc(postprob))%>%slice(1:5)%>%
-                   rename(Quarter=time,Count=n)
+    data2<-data2%>%
+      dplyr::select(-qrt)%>%
+      arrange(desc(postprob))%>%
+      slice(1:5)%>%
+      rename(Quarter=time,Count=n)
     }
     data2
     
   })
   
   
-  output$current_dpnrr_title<-renderText({
-    paste("Dynamic PRR for:",search_input$drug,'&',search_input$pt)
+  output$current_dpnrr_title<-renderUI({
+    h3(strong(paste("Dynamic PRR for:",search_input$drug,'&',search_input$pt)))
   })
   
   output$dpnrr_plot<-renderPlotly({
@@ -544,14 +557,23 @@ dnprr_cal<-reactive({
             panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
                                             colour = "gray96"))+
       scale_x_datetime('',date_labels="%Y-%m")+
-      geom_errorbar(aes(ymin=lb, ymax=ub), colour="gray24", width=0.25)+
+      geom_errorbar(aes(ymin=lb, ymax=ub), colour="gray24",size=0.1,width=0.25)+
       # geom_segment(aes(x=xloc, y=ubgap, xend =xloc, yend =ub),arrow = arrow(angle=90,length = unit(0.05, "cm")))+
       # geom_segment(aes(x=xloc, y=lbgap, xend =xloc, yend =lb),arrow = arrow(angle=90,length = unit(0.05, "cm")))+
       geom_hline(yintercept=1,linetype='dotted')
       
     
-    ggplotly(p, width = 1250, height = 550)
+    ggplotly(p)
   })
+  
+  
+  output$dpnrr_table<-DT::renderDataTable(
+    DT::datatable(
+      dnprr_cal(),
+      options = list(
+        scrollX = TRUE
+      ))
+  )
   
   
 }
