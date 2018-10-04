@@ -111,7 +111,8 @@ ui <- dashboardPage(
               tabsetPanel(type='tabs',
                     tabPanel("DISP Intro",
                     withMathJax(includeMarkdown("/home/shared/DISP data/CopyOfDISP about/DISP_about.md"))),
-                    tabPanel("CPA Intro")
+                    tabPanel("CPA Intro",
+                             withMathJax(includeMarkdown("cpa_about_v1.Rmd")))
                 )
               
       ),

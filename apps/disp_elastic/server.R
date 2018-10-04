@@ -82,7 +82,7 @@ disp_result<-reactive({
     
     incProgress(1/3)
     
-    bcpnn<-BCPNN_HCSC(phvid_df())
+    bcpnn<-BCPNN_HCSC(phvid_df(),MC=TRUE)
     
     incProgress(3/4)
     rfet<-RFET_HCSC(phvid_df())
@@ -530,7 +530,7 @@ dnprr_cal<-reactive({
   
   
   output$current_dpnrr_title<-renderUI({
-    h3(strong(paste("Dynamic PRR for:",search_input$drug,'&',search_input$pt)))
+    h3(strong(paste("Cumulative PRR over time for:",search_input$drug,'&',search_input$pt)))
   })
   
   output$dpnrr_plot<-renderPlotly({

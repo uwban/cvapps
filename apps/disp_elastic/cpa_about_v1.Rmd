@@ -1,0 +1,38 @@
+---
+title: "CPA_about"
+author: "Nancy Zhu"
+date: "10/4/2018"
+output: html_document
+---
+
+
+<center> <h2> Changepoint Analysis </h2> </center>
+
+### Frequentist method for changepoint analysis
+Change-point analysis (CPA) is a statistical method for determining whether a change in either mean or variability has taken place in a time series or sequence. Detecting such changes is important in many different application areas. Recent examples include climatology (Reeves et al., 2007), bioinformatic applications (Erdman and Emerson, 2008), finance (Zeileis et al., 2010), oceanography (Killick et al., 2010) and medical imaging (Nam et al., 2012).
+
+The detection of a single changepoint can be posed as a hypothesis test. The null hypothesis, H0, corresponds to no changepoint (m = 0) and the alternative hypothesis, H1, is a single changepoint (m = 1). A test statistic can be constructed which we will use to decide whether a change has occurred. The likelihood ratio method requires the calculation of the maximum log-likelihood under both null and alternative hypotheses. For the null hypothesis the maximum log-likelihood is $log p(y_{1:n}|\theta)$ where $p(.)$ is the probability density function associated with the distribution of the data and $\theta$ is the maximum likelihood estimate of the parameter.
+
+Under alternative hypothesis, consider a model with a changepoint at $\tau_1$, with $\tau_1 \in {1,2,.....,n-1}$. The the maximum log likelihood for a given $\tau_1$ is 
+$$ML(\tau_1)= log p(y_{1:\tau_1}|\theta_1)+logp(y_{(\tau_1+1):n}|\theta_2)   $$
+Given the discrete nature of the changepoint location, the maximum log-likelihood value under the alternative is simply $max_{\tau_1} ML(\tau_1)$, where the maximum is taken over all possible changepoint locations. The test statistic is thus
+$$ \lambda = 2 [maxML(\tau_1)-logp(y_{1:n}|\theta)] $$
+The test involves choosing a threshold, c, such that we reject the null hypothesis if $\lambda$ > c. If we
+reject the null hypothesis, i.e., detect a changepoint, then we estimate its position as $\tau_1$ the value
+of $\tau_1$  that maximises $ML(\tau_1)$. It is clear that the likelihood test statistic can be extended to multiple changes simply by summing the likelihood for each of the m segments. The problem becomes one of identifying the maximum of $ML(\tau_{1:m})$ over all possible combinations of $\tau_1:m$. 
+
+In this Shiny App, Beinary Segmentation algorithm was implemented for changepoint analysis.  Briefly, Binary Segmentation first applies a single changepoint test statistic to the entire data, if a changepoint is identified the data is split into two at the changepoint location. The single changepoint procedure is repeated on the two new data sets, before and after the change. If changepoints are identified in either of the new data sets, they are split further. This process continues until no changepoints are found in any parts of the data. This procedure is an approximate minimisation of (2) with f(m) = m as any changepoint locations are conditional on changepoints identified previously. Binary Segmentation is thus an approximate algorithm but is computationally fast as it only considers a subset of the $2^{n-1}$ possible solutions. 
+
+### Bayesian method for changepoint detection
+This Shiny App implements the Bayesian change point analysis methods given in Wang and Emerson (2015),of which the Barry and Hartigan (1993) product partition model for the normal errors change point problem is a specific case. 1. Multivariate (or univariate) Bayesian change point analysis: We assume there exists an unknown partition of a data series y into blocks such that the mean is constant
+within each block. In the multivariate case, a common change point structure is assumed; means are constant within each block of each sequence, but may differ across sequences within a given block. Conditional on the partition, the model assumes that observations are independent, identically distributed normal, with constant means within blocks and constant variance throughout each sequence.
+
+### References
+'changepoint' R package : <https://cran.r-project.org/web/packages/changepoint/changepoint.pdf>
+
+'bcp' R package: <https://cran.r-project.org/web/packages/bcp/bcp.pdf>
+
+Erdman, C. and Emerson, J. W. (2007). bcp: An r package for performing a bayesian analysis of change point problems. *Journal of Statistical Software*, 23(3):1–13.
+
+Daniel Barry and J. A. Hartigan (1993), A Bayesian Analysis for Change Point Problems,
+*Journal of The American Statistical Association*, 88, 309-19.
