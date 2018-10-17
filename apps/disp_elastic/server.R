@@ -259,7 +259,7 @@ dnprr_cal<-reactive({
   
   disp_download<-reactive({
     
-    withProgress(message='Reformating JSON files to CSV',value=0,{
+    withProgress(message='Reformating JSON files to CSV',value=1/4,{
       
     report_data<-parse_all(startDate,endDate,'All',search_input$pt,search_input$drug)%>%
                  flatten()

@@ -98,7 +98,7 @@ ui <- dashboardPage(
                 tabPanel("Bayesian Analysis",
                          fluidRow(column(width=12,solidHeader = TRUE,
                                          htmlOutput("bcp_title"),
-                                         plotOutput('bcpa'))),
+                                         plotlyOutput('bcpa'))),
                          fluidRow(column(
                            tableOutput('bcpa_txt'),width=6))
               ))),
