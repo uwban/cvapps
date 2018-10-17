@@ -2,16 +2,20 @@ server <- function(input, output, session) {
   
 search_input<-reactiveValues(
   drug=ing_choices[1],
-  pt='Off label use'
+  pt=pt_choices[1]
 )
   
   observeEvent(input$search_drug,{
+    pt_choices<-c("Start typing to search..." = "")
+    
+    if(all("" != input$search_drug) & !is.null(input$search_drug)){
     pt_choices<-create_uri(startDate,endDate,gender='All',rxn=NULL,drug_ing=input$search_drug,'reaction_pt.keyword')%>%
                 add_api_key()%>%
                 hc_result(F)%>%
                 dplyr::pull(key)
                 #rename(`PT ordered by report number`=key)
-                #mutate(key=paste0(key,' (',doc_count,')'))
+     }          
+    
     
     updateSelectInput(session,'search_pt',choices=pt_choices)
   })

@@ -7,15 +7,13 @@ ui <- dashboardPage(
     sidebarMenu(
       selectInput(inputId ="search_drug",
                   label = "Ingredient",
-                  choices = c(ing_choices, "Start typing to search..." = ""),
-                  multiple = F,
-                  selected = ing_choices[1]),
+                  choices = c("Start typing to search..." = "",ing_choices),
+                  multiple = F),
       
       selectInput(inputId = "search_pt",
                   label = "Adverse Event Preferred Term",
-                  choices = c(pt_choices,"Start typing to search..." = ""),
-                  multiple = F,
-                  selected= pt_choices[1]),
+                  choices = c("Start typing to search..." = ""),
+                  multiple = F),
       #checkboxGroupInput('stratify',label='Stratification',c('Gender','Age-Group','None'),selected='None'),
       
       tags$div(class="form-group shiny-input-container",

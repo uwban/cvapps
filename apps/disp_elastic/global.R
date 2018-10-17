@@ -51,7 +51,7 @@ hc_result<-function(url,summation=TRUE){
 add_api_key<-function(url){
   #url<-paste0(url,'&key=40e40966014eb7ac')
   url<-paste0(url,'&limit=50000')
-  url<-gsub(' ','%20',url)
+  #url<-gsub(' ','%20',url)
   return(url)
 }
 
@@ -128,6 +128,7 @@ parse_all<-function(startDate,endDate,gender,rxn,drug_ing){
   response<-create_uri(startDate,endDate,gender='All',rxn,drug_ing,count_term=NULL,limit=NULL,skip=NULL)%>%
            add_api_key()%>%
            hc_result(F)
+  
   total<-create_uri(startDate,endDate,gender='All',rxn,drug_ing,count_term=NULL,limit=NULL,skip=NULL)%>%
          add_api_key()%>%
          hc_result(T)
