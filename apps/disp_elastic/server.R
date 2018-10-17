@@ -9,7 +9,8 @@ search_input<-reactiveValues(
     pt_choices<-create_uri(startDate,endDate,gender='All',rxn=NULL,drug_ing=input$search_drug,'reaction_pt.keyword')%>%
                 add_api_key()%>%
                 hc_result(F)%>%
-                rename(`PT ordered by report number`=key)
+                dplyr::pull(key)
+                #rename(`PT ordered by report number`=key)
                 #mutate(key=paste0(key,' (',doc_count,')'))
     
     updateSelectInput(session,'search_pt',choices=pt_choices)
