@@ -535,7 +535,7 @@ dnprr_cal<-reactive({
     h3(strong(paste("Bayesian Changepoint Analysis for:",search_input$drug,'&',search_input$pt)))
   })
   
-  output$bcpa<-renderPlot({
+  output$bcpa<-renderPlotly({
     
     data<-cpa_data()$datax
     
@@ -544,7 +544,33 @@ dnprr_cal<-reactive({
       text(1,1,'there is not enough data for changepoint analysis')
         
     }
-    plot(cpa_cal()$bcp)
+    
+    rs<-cpa_cal()$bcp
+    
+    bcp_rs<-data.frame(posterior_prob=rs$posterior.prob,
+                       posterior_mean=rs$posterior.mean,
+                       loc=as.Date(data$time,format='%Y-%m-%d'))
+    
+    f1 <- list(
+      family = "Arial, sans-serif",
+      size = 16
+    )
+      
+      p1<-plot_ly(bcp_rs,x=~loc,y=~X1,
+                  mode='lines+markers',name='posterior mean')%>%
+      layout(xaxis=list(title='',
+                        tickangle=330),
+             yaxis=list(title='Posterior Mean',titlefont=f1))
+    
+    p2<-plot_ly(bcp_rs,x=~loc,y=~posterior_prob,
+                mode='lines+markers',name='posterior probability',
+                line=list(color = 'rgb(205, 12, 24)'))%>%
+      layout(xaxis=list(title='',tickangle=330),
+             yaxis=list(title='Posterior probability',titlefont=f1))
+    
+    subplot(p1,p2,nrows=2,titleY=T,shareX = T)
+    
+    
   })
   
   output$bcpa_txt<-renderTable({
