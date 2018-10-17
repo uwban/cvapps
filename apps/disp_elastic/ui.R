@@ -16,6 +16,7 @@ ui <- dashboardPage(
                   choices = c(pt_choices,"Start typing to search..." = ""),
                   multiple = F,
                   selected= pt_choices[1]),
+      #checkboxGroupInput('stratify',label='Stratification',c('Gender','Age-Group','None'),selected='None'),
       
       tags$div(class="form-group shiny-input-container",
                actionButton(inputId = "search_button",
@@ -30,7 +31,11 @@ ui <- dashboardPage(
       tags$h3(strong("Current Query:")),
       tableOutput("current_search"),
       downloadButton(outputId = "pt_data_dl",
-                     label = "Export Data")
+                     label = "Export Raw Data"),
+      selectizeInput('select_column',
+                     "Select Columns",
+                     choices=c('Select columns to download',report_col),
+                     multiple=T)
     )
   ), 
   

@@ -74,3 +74,87 @@ date<-paste0(base_url,'?count=datintreceived')%>%
 
 max_date<-max(date$key_as_string)%>%as.Date(format='%Y-%m-%d')
   
+
+# query functions ####
+clean_string<-function(string){
+  string <- gsub("%", "%20", string)
+  string <- gsub("'", "%27", string)
+  string <- gsub("!", "", string)
+  string <- gsub("&", "", string)
+  string <- gsub(' ', '%20', string)
+  
+  string<-paste0('\"',string,'\"')
+
+  string
+}
+
+#for now set startDate and EndDate
+startDate<-as.Date('1965-01-01','%Y-%m-%d')
+endDate<-max_date
+
+create_uri<-function(startDate,endDate,gender='All',rxn=NULL,drug_ing=NULL,count_term=NULL,limit=NULL,skip=NULL){
+  search_uri<-paste0(base_url,'?search=','datintreceived:[', toString(startDate), '+TO+', toString(endDate), ']')
+  
+  if(gender!="All"){
+    search_uri<-paste0(search_uri,'+AND+patient_gender:',gender)
+  }
+  
+  if(!is.null(rxn)){
+    search_uri <- paste0(search_uri, '+AND+reaction_pt.keyword:', clean_string(rxn))
+  }
+  
+  if(!is.null(drug_ing)){
+    search_uri <- paste0(search_uri, '+AND+report_ingredient_suspect.keyword:', clean_string(drug_ing))
+  }
+  
+  if(!is.null(count_term)){
+    search_uri <- paste0(search_uri, '&count=',count_term)
+  }
+  
+  if(!is.null(limit)){
+    search_uri <- paste0(search_uri, '&limit=',limit)
+  }
+  
+  if(!is.null(skip)){
+    search_uri<-paste0(search_uri,'&skip=',skip)
+  }
+  
+  return(search_uri)
+}
+
+
+#parse all returns:
+parse_all<-function(startDate,endDate,gender,rxn,drug_ing){
+  response<-create_uri(startDate,endDate,gender='All',rxn,drug_ing,count_term=NULL,limit=NULL,skip=NULL)%>%
+           add_api_key()%>%
+           hc_result(F)
+  total<-create_uri(startDate,endDate,gender='All',rxn,drug_ing,count_term=NULL,limit=NULL,skip=NULL)%>%
+         add_api_key()%>%
+         hc_result(T)
+  
+  if (total>1000){
+    niter<-floor(total/1000)
+    result_more<-list()
+    for (i in 1:niter){
+      result_more[[i]]<-create_uri(startDate,endDate,gender='All',rxn,drug_ing,count_term=NULL,limit=1000,skip=1000*i)%>%
+                        add_api_key()%>%
+                        hc_result(F)
+    }
+    response_more<-rbind_pages(result_more)
+    response_final<-rbind_pages(list(response,response_more))
+    
+  }else{
+    
+    response_final<-response
+  }
+  
+  return(response_final)
+ }
+
+report_col<-c('report_id','report_no','disability',
+              'death','mah_no','source','outcome',
+              'version_no','datreceived','report_type','seriousness',
+              'hosp_required','reporter_type','datintreceived','patient_gender',
+              'patient_weight','life_threatening','congenital_anomaly','patient_weight_unit',
+              'report_drugname_suspect','report_ingredient_suspect','n_drugs_per_report',
+              'patient_age','patient_age_y','patient_age_unit','patient_height','patient_height_unit','patient_age_group')

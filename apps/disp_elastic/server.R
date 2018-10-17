@@ -2,18 +2,28 @@ server <- function(input, output, session) {
   
 search_input<-reactiveValues(
   drug=ing_choices[1],
-  pt=pt_choices[1]
+  pt='Off label use'
 )
   
-
+  observeEvent(input$search_drug,{
+    pt_choices<-create_uri(startDate,endDate,gender='All',rxn=NULL,drug_ing=input$search_drug,'reaction_pt.keyword')%>%
+                add_api_key()%>%
+                hc_result(F)%>%
+                rename(`PT ordered by report number`=key)
+                #mutate(key=paste0(key,' (',doc_count,')'))
+    
+    updateSelectInput(session,'search_pt',choices=pt_choices)
+  })
+  
   
   observeEvent(input$search_button,{
     
     search_input$drug<-input$search_drug
     search_input$pt<-input$search_pt
     
-    url_de<-paste0(base_url,'?search=report_ingredient_suspect:',input$search_drug,
-                   '+AND+','reaction_pt:',input$search_pt,'&count=_id.keyword')%>%add_api_key()
+    url_de<-create_uri(startDate,endDate,rxn=input$search_pt,drug=input$search_drug,count_term ='id.keyword')%>%add_api_key()
+      # paste0(base_url,'?search=report_ingredient_suspect:',input$search_drug,
+      #              '+AND+','reaction_pt:',input$search_pt,'&count=_id.keyword')%>%add_api_key()
 
     
     n<-hc_result(url_de)
@@ -38,10 +48,10 @@ search_input<-reactiveValues(
   
 phvid_df<-reactive({
   
-  de_count<-paste0(base_url,'?search=report_ingredient_suspect:',search_input$drug,'+AND+','reaction_pt:',search_input$pt,'&count=_id.keyword')%>%add_api_key()
-  d_count=paste0(base_url,'?search=report_ingredient_suspect:',search_input$drug,'&count=_id.keyword')%>%add_api_key()
-  ae_count=paste0(base_url,'?search=reaction_pt:',search_input$pt,'&count=_id.keyword')%>%add_api_key()
-  total_count=paste0(base_url,'?count=_id.keyword')%>%add_api_key()
+  de_count<-create_uri(startDate,endDate,rxn=search_input$pt,drug=search_input$drug,count_term = 'id.keyword')%>%add_api_key()
+  d_count<-create_uri(startDate,endDate,drug=search_input$drug,count_term = 'id.keyword')%>%add_api_key()
+  ae_count<-create_uri(startDate,endDate,rxn=search_input$pt,count_term = 'id.keyword')%>%add_api_key()
+  total_count<-create_uri(startDate,endDate,count_term = 'id.keyword')%>%add_api_key()
   
   L<-data.frame(ing=search_input$drug,
                 pt_name=search_input$pt)
@@ -109,8 +119,7 @@ disp_result<-reactive({
 #change of point input:
 cpa_data<-reactive({
   
-  cpa<-paste0(base_url,'?search=report_ingredient_suspect:',search_input$drug,'+AND+','reaction_pt:',
-             search_input$pt,'&count=datintreceived:quarter')%>%add_api_key()
+  cpa<-create_uri(startDate,endDate,rxn=search_input$pt,drug=search_input$drug,count_term='datintreceived:quarter')%>%add_api_key()
   
   datax<-hc_result(cpa,F)%>%
           dplyr::select(c(1,3))%>%
@@ -171,12 +180,13 @@ dnprr_cal<-reactive({
   
   withProgress(message='Calculating PRR over time...',value=0,{
     
- cpa<-paste0(base_url,'?search=report_ingredient_suspect:',search_input$drug,'+AND+','reaction_pt:',
-                search_input$pt,'&count=datintreceived:quarter')%>%add_api_key()
+ cpa<-create_uri(startDate,endDate,rxn=search_input$pt,drug=search_input$drug,count_term='datintreceived:quarter')%>%
+      add_api_key()
+    
+ dnprr_d<-create_uri(startDate,endDate,drug=search_input$drug,count_term='datintreceived:quarter')%>%add_api_key()
+ dnprr_ae<-create_uri(startDate,endDate,rxn=search_input$pt,count_term='datintreceived:quarter')%>%add_api_key()
+ dnprr_total<-create_uri(startDate,endDate,count_term='datintreceived:quarter')%>%add_api_key()
  
- dnprr_d<-paste0(base_url,'?search=report_ingredient_suspect:',search_input$drug,'&count=datintreceived:quarter')%>%add_api_key()
- dnprr_ae<-paste0(base_url,'?search=reaction_pt:',search_input$pt,'&count=datintreceived:quarter')%>%add_api_key()
- dnprr_total<-paste0(base_url,'?count=datintreceived:quarter')%>%add_api_key()
   
   dnprr_d_ae<-hc_result(cpa,F)%>%
                  mutate(n11=cumsum(doc_count))%>%
@@ -242,6 +252,31 @@ dnprr_cal<-reactive({
   }, include.colnames = FALSE)
   
   
+  disp_download<-reactive({
+    
+    withProgress(message='Reformating JSON files to CSV',value=0,{
+      
+    report_data<-parse_all(startDate,endDate,'All',search_input$pt,search_input$drug)%>%
+                 flatten()
+    
+    colnames(report_data)<-gsub('_source.','',colnames(report_data))
+     report_data<-report_data%>%dplyr::select(-reactions,-reaction_pt,-report_drug_detail,-report_links,-reaction_soc,
+          -report_ingredient_concomitant,-report_drugname_concomitant,-report_indication_eng)
+          
+      
+    report_data$report_drugname_suspect<-sapply(report_data$report_drugname_suspect,paste,collapse=',',USE.NAMES = F)
+    report_data$report_ingredient_suspect<-sapply(report_data$report_ingredient_suspect,paste,collapse=',',USE.NAMES = F)
+      
+    if(!is.null(input$select_column)){
+      report_data<-report_data%>%dplyr::select(input$select_column)
+    }else{
+      report_data<-report_data
+    }
+    
+    })
+  })
+  
+  
   output$pt_data_dl <- downloadHandler(
     filename = function() {
       current_drug <- search_input$drug
@@ -250,7 +285,7 @@ dnprr_cal<-reactive({
       paste0('DISP_data_', current_drug,'&',current_pt,'.csv')
     },
     content = function(file) {
-      write.csv(time_data_pt()%>%dplyr::select(-key), file, row.names=FALSE)
+      write.csv(disp_download(), file, row.names=FALSE)
     }
   )
   
@@ -293,8 +328,8 @@ dnprr_cal<-reactive({
   # time-series data
   time_data_pt <- reactive({
     
-    cpa<-paste0(base_url,'?search=report_ingredient_suspect:',search_input$drug,'+AND+','reaction_pt:',
-                search_input$pt,'&count=datintreceived:quarter')%>%add_api_key()
+    cpa<-create_uri(startDate,endDate,rxn=search_input$pt,drug=search_input$drug,count_term='datintreceived:quarter')%>%
+      add_api_key()
 
     time_series<-hc_result(cpa,F)
 
