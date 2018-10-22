@@ -77,12 +77,12 @@ disp_result<-reactive({
     
     
     DATA <- phvid_df()$data
-    N <- phvid_df()$N
+    N <- phvid_df()$N%>%as.numeric()
     
-    L <- phvid_df()$L
-    n11 <- DATA[,1]
-    n1. <- DATA[,2] # marginal drug counts
-    n.1 <- DATA[,3] # marginal AE counts
+    L <- phvid_df()$L%>%as.numeric()
+    n11 <- DATA[,1]%>%as.numeric()
+    n1. <- DATA[,2]%>%as.numeric() # marginal drug counts
+    n.1 <- DATA[,3]%>%as.numeric() # marginal AE counts
     n10 <- n1. - n11
     n01 <- n.1 - n11
     n00 <- N - (n11+n10+n01)
