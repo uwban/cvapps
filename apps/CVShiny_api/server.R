@@ -12,7 +12,6 @@ shinyServer(function(input, output, session) {
   show("main-content")
   
   
-  
   #Autocomplete suggestions are generated
   updateSelectizeInput(session, 'search_brand', choices = topbrands, server = TRUE)
   updateSelectizeInput(session, 'search_ing', choices = topings_cv, server = TRUE)
@@ -553,7 +552,7 @@ shinyServer(function(input, output, session) {
   
   output$drugcount_plot <- renderGvis({
     # the top drugs reported here might be influenced by such drug is originally most reported among all reports
-    data<- drugcount_data()%>%filter(category<=20)
+    data<- drugcount_data()%>%filter(category<=20)%>%arrange(category)
     data$category <-paste("Number of Drugs:",data$category)
 
 
