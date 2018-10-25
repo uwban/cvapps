@@ -153,6 +153,23 @@ aboutAuthors <- function() {list(
       "Data Science Unit / Business Informatics / Resource Management and Operations Directorate / Health Porducts and Food Branch / Health Canada", br(),
       "jehopkin@sfu.ca",
       width = 3
+    )),
+    tags$strong("MHPD Working Groups:"),
+    fluidRow(width=12,
+      box(width=3,status = "primary",
+          "Nick Karitsiotis",br(),
+          "Teresa W Tam",br(),
+          "Marielle McMorran",br(),
+          "Michel Trottier",br(),
+          "Jhona Rose "
+      ),
+      box(width=3,status="primary",
+          "Parag Buch",br(),
+          "Nong Pu", br(),
+          "Vicki Sabourin",br(),
+          "Samina Aziz",br(),
+          "Marie-Therese Bawolak"
+      )
     )
-  )
+    
 )}

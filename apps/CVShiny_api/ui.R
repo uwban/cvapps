@@ -241,8 +241,8 @@ dashboardPage(
                   "For more information, please refer to ",
                   "<a href = \"https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database.html\">",
                   "https://www.canada.ca/en/health-canada/services/drugs-health-products/medeffect-canada/adverse-reaction-database.html</a>.",
-                  "</p>")),
-                aboutAuthors())), 
+                  "</p>"))),
+                 aboutAuthors()), 
       tabItem(tabName = "download_tab",
               fluidRow(
                 box(
