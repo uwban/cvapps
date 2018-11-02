@@ -54,7 +54,12 @@ dashboardPage(
                      "Active Ingredient",
                      c("Start typing to search..." = ""),
                      multiple = TRUE)),
-    div(style="display: inline-block; width: 47%;",
+    
+    div(style="display: inline-block; width: 52%;",
+        radioButtons("search_type", "Search type:",
+                     c("Exact" = "exact","Contains" = "contains")),inline=T),
+    
+    div(style="display: inline-block; width: 52%;",
         radioButtons("name_type", "Drug name type:",
                      c("Brand Name" = "brand",
                        # "DPD ing" = "ingredient2",

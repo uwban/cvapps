@@ -108,7 +108,7 @@ counter <- function(uri, count_term, key=''){
 #defaults are added so that function is reusible for counting (piecharts)
 #Params:
 #Return:
-create_uri <- function(startDate, endDate, gender='All', age=c(0, 125), rxn=NULL, soc=NULL, drug_inv='Any', drugname=NULL, seriousness=NULL, search_type='', ...) {
+create_uri <- function(startDate, endDate, gender='All', age=c(0, 125), rxn=NULL, soc=NULL, drug_inv='Any', drugname=NULL, seriousness=NULL, search_type='',exact='exact', ...) {
 
   search_uri <- 'https://node.hres.ca/drug/event?search='
   
@@ -170,32 +170,84 @@ create_uri <- function(startDate, endDate, gender='All', age=c(0, 125), rxn=NULL
   if(!is.null(rxn)){
     search_uri <- paste0(search_uri, '+AND+reaction_pt.keyword:', remove_spaces(rxn))
   }
+    
 
   if(!is.null(soc)) {
     search_uri <- paste0(search_uri, '+AND+reaction_soc.keyword:', remove_spaces(soc))
   }
 
   
-  if(drug_inv == 'Concomitant' & !is.null(drugname) & search_type == 'brand'){
-    search_uri <- paste0(search_uri, '+AND+report_drugname_concomitant.keyword:', remove_spaces(drugname))
+if(!is.null(drugname) & exact=='exact'){
+    
+  if(drug_inv == 'Concomitant'){
+    
+      if(search_type== 'brand'){
+        search_uri <- paste0(search_uri, '+AND+report_drugname_concomitant.keyword:', remove_spaces(drugname))
+      }else{
+        search_uri <- paste0(search_uri, '+AND+report_ingredient_concomitant.keyword:', remove_spaces(drugname))
+      }
+  }
+    
+    
+  if(drug_inv=='Suspect'){
+    if(search_type=='brand'){
+      search_uri <- paste0(search_uri, '+AND+report_drugname_suspect.keyword:', remove_spaces(drugname))
+    }else{
+      search_uri <- paste0(search_uri, '+AND+report_ingredient_suspect.keyword:', remove_spaces(drugname))
+    }
+  }
+    
+  
+  if(drug_inv=='Any'){
+    if(search_type=='brand'){
+      search_uri <- paste0(search_uri, '+AND+(report_drugname_suspect.keyword:', remove_spaces(drugname),'+OR+report_drugname_concomitant.keyword:',
+                           remove_spaces(drugname),')')
+    }else{
+      search_uri <- paste0(search_uri, '+AND+(report_ingredient_suspect.keyword:', remove_spaces(drugname),'+OR+report_ingredient_concomitant.keyword:',
+                           remove_spaces(drugname),')')
+    }
   }
   
-  else if(drug_inv == "Suspect" & !is.null(drugname) & search_type == 'brand'){
-    search_uri <- paste0(search_uri, '+AND+report_drugname_suspect.keyword:', remove_spaces(drugname))
+  
+}else if(!is.null(drugname) & exact!='exact'){
+    
+  if(drug_inv == 'Concomitant'){
+    
+    if(search_type== 'brand'){
+      search_uri <- paste0(search_uri, '+AND+report_drugname_concomitant:', remove_spaces(drugname))
+    }else{
+      search_uri <- paste0(search_uri, '+AND+report_ingredient_concomitant:', remove_spaces(drugname))
+    }
   }
-  else if(drug_inv == "Suspect" & !is.null(drugname) & search_type == 'ingredient'){
-    search_uri <- paste0(search_uri, '+AND+report_ingredient_suspect.keyword:', remove_spaces(drugname))
+  
+  
+  if(drug_inv=='Suspect'){
+    if(search_type=='brand'){
+      search_uri <- paste0(search_uri, '+AND+report_drugname_suspect:', remove_spaces(drugname))
+    }else{
+      search_uri <- paste0(search_uri, '+AND+report_ingredient_suspect:', remove_spaces(drugname))
+    }
   }
-  else if(drug_inv == "Concomitant" & !is.null(drugname) & search_type == 'ingredient'){
-    search_uri <- paste0(search_uri, '+AND+report_ingredient_concomitant.keyword:', remove_spaces(drugname))
+  
+  
+  if(drug_inv=='Any'){
+    if(search_type=='brand'){
+      search_uri <- paste0(search_uri, '+AND+(report_drugname_suspect:', remove_spaces(drugname),'+OR+report_drugname_concomitant:',
+                           remove_spaces(drugname),')')
+    }else{
+      search_uri <- paste0(search_uri, '+AND+(report_ingredient_suspect:', remove_spaces(drugname),'+OR+report_ingredient_concomitant:',
+                           remove_spaces(drugname),')')
+    }
   }
-  else if (drug_inv =='Any'& !is.null(drugname) & search_type == 'ingredient'){
-    search_uri <- paste0(search_uri, '+AND+(report_ingredient_suspect.keyword:', remove_spaces(drugname),'+OR+report_ingredient_concomitant.keyword:',
-                         remove_spaces(drugname),')')
-  }else if(drug_inv =='Any'& !is.null(drugname) & search_type == 'brand'){
-    search_uri <- paste0(search_uri, '+AND+(report_drugname_suspect.keyword:', remove_spaces(drugname),'+OR+report_drugname_concomitant.keyword:',
-                         remove_spaces(drugname),')')
-  }
+  
+}
+    
+    
+    
+    
+    
+    
+
   # else if ( !is.null(drugname)){
   #   search_uri <- paste0('+AND+report_drug.drugname:', remove_spaces(drugname))
   # 
@@ -219,13 +271,13 @@ create_uri <- function(startDate, endDate, gender='All', age=c(0, 125), rxn=NULL
 #gets all time chart dat, splits by year and seriousness
 #Params: current_search params - could be refactored to take a list
 #Return: 
-get_timechart_data <- function(time_period,date_start,date_end, gender, age, rxn, soc, drug_inv, drugname, seriousness, name_type, ...){
+get_timechart_data <- function(time_period,date_start,date_end, gender, age, rxn, soc, drug_inv, drugname, seriousness, name_type,exact, ...){
   result <- list()
   
   
   for (i in 1:(length(date_start)- 1)){
 
-        search_uri<- create_uri(date_start[i], date_end[i+1], gender, age, rxn, soc, drug_inv, drugname, seriousness, name_type)
+        search_uri<- create_uri(date_start[i], date_end[i+1], gender, age, rxn, soc, drug_inv, drugname, seriousness, name_type,exact)
         
     search_uri <- add_term(search_uri)
     result[[i]] <- search_uri

@@ -74,12 +74,14 @@ shinyServer(function(input, output, session) {
       
       current_search$endDate <- endDate
       
+      current_search$search_type<-input$search_type
+      
       #current_search$age_estimate <- input$filter_estimates_age
       
       current_search$uri <- create_uri(current_search$startDate, current_search$endDate, current_search$gender, 
                                        current_search$age, current_search$rxn, current_search$soc, 
                                        current_search$drug_inv, current_search$name, current_search$seriousness_type, 
-                                       current_search$name_type)
+                                       current_search$name_type,current_search$search_type)
       incProgress(4/9, detail = 'Assembling query string')
       # api_key <- api_key
       
@@ -98,7 +100,7 @@ shinyServer(function(input, output, session) {
         current_search$uri <- create_uri(current_search$startDate, current_search$endDate, current_search$gender, 
                                          current_search$age, current_search$rxn, current_search$soc, 
                                          current_search$drug_inv, current_search$name, current_search$seriousness_type, 
-                                         current_search$name_type)
+                                         current_search$name_type,current_search$search_type)
         
       }
 
@@ -222,7 +224,7 @@ shinyServer(function(input, output, session) {
     dateSequence_end <- get_date_sequence_end(current_search$startDate, current_search$endDate, time_period)
     
     data <- get_timechart_data(time_period, dateSequence_start,dateSequence_end, current_search$gender, current_search$age, current_search$rxn,
-                               current_search$soc, current_search$drug_inv, current_search$name, current_search$seriousness_type, current_search$name_type)
+                               current_search$soc, current_search$drug_inv, current_search$name, current_search$seriousness_type, current_search$name_type,current_search$search_type)
     
     
     
