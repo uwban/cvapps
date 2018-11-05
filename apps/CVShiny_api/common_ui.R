@@ -157,18 +157,19 @@ aboutAuthors <- function() {list(
     tags$strong("MHPD Working Groups:"),
     fluidRow(width=12,
       box(width=3,status = "primary",
-          "Nick Karitsiotis",br(),
+          "Jhona Rose",br(),
           "Teresa W Tam",br(),
-          "Marielle McMorran",br(),
-          "Michel Trottier",br(),
-          "Jhona Rose "
+          "Vicki Sabourin ",br(),
+          "Marie-Therese Bawolak",br(),
+          "Marielle Lavallee",br(),
+          "Michel Trottier"
       ),
       box(width=3,status="primary",
-          "Parag Buch",br(),
-          "Nong Pu", br(),
-          "Vicki Sabourin",br(),
+          "Sylvie Ferrier", br(),
           "Samina Aziz",br(),
-          "Marie-Therese Bawolak"
+          "Ming Dong Wang",br(),
+          "Jared Cousins",br(),
+          "Parag Buch"
       )
     )
     
