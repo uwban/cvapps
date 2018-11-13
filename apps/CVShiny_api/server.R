@@ -336,7 +336,7 @@ shinyServer(function(input, output, session) {
     
     other_medically_imp_cond <- counter(current_search$uri, 'other_medically_imp_cond.keyword', api_key)
     other_medically_imp_cond <- other_medically_imp_cond[(other_medically_imp_cond$category =="true"),]
-    other_medically_imp_cond[1,1] <- 'Other Medically Impaired Condition'
+    other_medically_imp_cond[1,1] <- 'Other Medically Important Condition'
 
     serious_reasons <-do.call(rbind,list(congenital_anomaly,death,life_threatening,hosp_required,disability,other_medically_imp_cond))
     serious_reasons[nrow(serious_reasons) + 1,] = list("Not Specified",nreports()-sum(serious_reasons$doc_count))
