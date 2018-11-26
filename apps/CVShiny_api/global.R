@@ -91,14 +91,22 @@ body_date<-'{
 max_date_res<-Search(index='drug_event',body=body_date,size=0)$aggregations$max_date[[2]]
 max_date<-as.Date(max_date_res,format='%Y-%m-%d')
 
-body_med<-'{
-    "aggs" : {
-        "max_version" : { "max" : { "field" : "meddra_version" } }
-    }
+# body_med<-'{
+#     "aggs" : {
+#         "max_version" : { "max" : { "field" : "meddra_version" } }
+#     }
+# }'
+
+body_med<-'
+{
+  "_source": "reactions.meddra_version",
+  "size":1,
+  "query":{
+    "match_all": {}
+  }
 }'
 
-max_version<-Search(index='meddra_pt',body=body_med,size=0)$aggregations$max_version[[1]]
-max_meddra<-paste0('v.',max_version)
+max_meddra<-Search(index='drug_event',body=body_med)$hits$hits[[1]]$`_source`$reactions[[1]]$meddra_version
 
 #populate pt_hlt relationship table:
 

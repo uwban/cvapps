@@ -108,7 +108,7 @@ counter <- function(uri, count_term, key=''){
 #defaults are added so that function is reusible for counting (piecharts)
 #Params:
 #Return:
-create_uri <- function(startDate, endDate, gender='All', age=c(0, 125), rxn=NULL, soc=NULL, drug_inv='Any', drugname=NULL, seriousness=NULL, search_type='',exact='exact', ...) {
+create_uri <- function(startDate, endDate, gender='All', age=c(0, 125),min_inclu=FALSE,max_inclu=FALSE, rxn=NULL, soc=NULL, drug_inv='Any', drugname=NULL, seriousness=NULL, search_type='',exact='exact', ...) {
 
   search_uri <- 'https://node.hres.ca/drug/event?search='
   
@@ -160,8 +160,24 @@ create_uri <- function(startDate, endDate, gender='All', age=c(0, 125), rxn=NULL
   
 
   if(age[1] != 0 | age[2] != 125) {
+    
+    if(!min_inclu & !max_inclu){
     search_uri <- paste0(search_uri, '+AND+patient_age_y:', '[', age[1], '+TO+', age[2], ']')
+    }
+    
+    if(min_inclu & !max_inclu){
+      search_uri <- paste0(search_uri, '+AND+patient_age_y:', '{', age[1], '+TO+', age[2], ']')
+    } 
+    
+    if(!min_inclu& max_inclu){
+      search_uri <- paste0(search_uri, '+AND+patient_age_y:', '[', age[1], '+TO+', age[2], '}')
+    }
+    
+    if(min_inclu & max_inclu){
+      search_uri <- paste0(search_uri, '+AND+patient_age_y:', '{', age[1], '+TO+', age[2], '}')
+    }
   }
+  
 
   if (gender != "All"){
     search_uri <- paste0(search_uri, '+AND+patient_gender:', gender)
@@ -271,13 +287,13 @@ if(!is.null(drugname) & exact=='exact'){
 #gets all time chart dat, splits by year and seriousness
 #Params: current_search params - could be refactored to take a list
 #Return: 
-get_timechart_data <- function(time_period,date_start,date_end, gender, age, rxn, soc, drug_inv, drugname, seriousness, name_type,exact, ...){
+get_timechart_data <- function(time_period,date_start,date_end, gender, age,min_age,max_age, rxn, soc, drug_inv, drugname, seriousness, name_type,exact, ...){
   result <- list()
   
   
   for (i in 1:(length(date_start)- 1)){
 
-        search_uri<- create_uri(date_start[i], date_end[i+1], gender, age, rxn, soc, drug_inv, drugname, seriousness, name_type,exact)
+        search_uri<- create_uri(date_start[i], date_end[i+1], gender, age,min_age,max_age, rxn, soc, drug_inv, drugname, seriousness, name_type,exact)
         
     search_uri <- add_term(search_uri)
     result[[i]] <- search_uri
@@ -329,26 +345,13 @@ get_date_sequence_end <- function(startDate, endDate, time_period) {
 #Return:
 parse_response <- function(uri){
   
-  uri<-paste0(uri,'&limit=1000')
-  response <- fromJSON(content(GET(uri), as='text'))$results
-  total <- fromJSON(content(GET(uri), as='text'))$total
-  if (total>1000){
-    niter<-floor(total/1000)
-    uri_more<-vector()
-    result_more<-list()
-    for (i in 1:niter){
-      uri_more[i]<-paste0(uri,'&skip=',1000*i,'&limit=1000')
-      result_more[[i]]<-fromJSON(content(GET(uri_more[i]), as='text'))$results
-    }
-    
-    response_more<-rbind_pages(result_more)
-    response_final<-rbind_pages(list(response,response_more))
-    
-  }else{
-    
-    response_final<-response
-  }
+  uri<-gsub('.*(?=datintreceived)','',uri,perl=T)
+  uri<-gsub('\\+',' ',uri)
   
-  return(response_final)
+  query<-paste0('{"query":{"query_string":{"query":"',uri,'"}}}')
+  r <-Search(index='drug_event',body=query,raw=T,size=10000)%>%fromJSON()
+  r<-r$hits$hits
+  
+  return(r)
 }
 

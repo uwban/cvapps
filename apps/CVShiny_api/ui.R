@@ -73,15 +73,13 @@ dashboardPage(
                      c("All",
                        "Serious(Excluding Death)",
                        "Death"))),
-    sliderInput("search_age",
+    div(style="height:80px;",sliderInput("search_age",
                 "Set Age Range",
                 min = 0,
                 max = 125,
-                value = c(0,125)),
-    div(style="display: inline-block; width: 90%;"),
-        # checkboxInput("filter_estimates_age",
-        #               "Reports with estimated ages?",
-        #                value = TRUE)),
+                value = c(0,125))),
+        div(style="height:20px;",checkboxInput("min_age","Min age exclusive",value = FALSE)),
+        div(style="height:60px;",checkboxInput("max_age","Max age exclusive",value = FALSE)),
 
     selectInput("search_gender",
                 "Select Gender",
@@ -113,15 +111,26 @@ dashboardPage(
   
   dashboardBody(
     customCSS(),
+    tabsetPanel(
+    tabPanel('Time Series Plot',
     fluidRow(
       box(htmlOutput(outputId = "timeplot_title"),
           #htmlOutput(outputId = "timeplot"),
           lineChartOutput("mychart"),
           "Reports by month from Canada Vigilance Adverse Reaction Online Database.",
           htmlOutput(outputId = "search_url"),
-          width = 12
+          width = 12,solidHeader = TRUE
       )
-    ),
+    )),
+    tabPanel('Table for time series',
+             selectizeInput("column_time",
+                            "Select Columns",
+                            choices=c('Serious(Excluding Death)','Death','Nonserious','Serious(Including Death)'),
+                            selected=c('Nonserious','Serious(Including Death)'),
+                            multiple = TRUE),
+                            
+             DT::dataTableOutput('tb_main')   
+              )),
     tabItems(
       tabItem(tabName = "reportdata",
               fluidRow(
@@ -263,7 +272,8 @@ dashboardPage(
                     selectizeInput('select_column',
                                    "Select Columns",
                                    choices=c('Select columns to download'),
-                                   multiple=T)
+                                   multiple=T),
+                    tags$b('Note: Export limit of 10,000. If your search result exceeds 10,000, only the first 10,000 reports will be downloaded')
                     # conditionalPanel(
                     #   "input.search_dataset_type == 'Report Data'",
                     #   uiOutput('column_select_data')),

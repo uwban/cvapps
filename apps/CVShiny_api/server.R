@@ -68,6 +68,10 @@ shinyServer(function(input, output, session) {
       
       current_search$age <- input$search_age
       
+      current_search$min_age<-input$min_age
+      
+      current_search$max_age<-input$max_age
+      
       current_search$date_range <- dateRange
       
       current_search$startDate <- startDate
@@ -79,7 +83,7 @@ shinyServer(function(input, output, session) {
       #current_search$age_estimate <- input$filter_estimates_age
       
       current_search$uri <- create_uri(current_search$startDate, current_search$endDate, current_search$gender, 
-                                       current_search$age, current_search$rxn, current_search$soc, 
+                                       current_search$age,current_search$min_age,current_search$max_age,current_search$rxn, current_search$soc, 
                                        current_search$drug_inv, current_search$name, current_search$seriousness_type, 
                                        current_search$name_type,current_search$search_type)
       incProgress(4/9, detail = 'Assembling query string')
@@ -98,7 +102,7 @@ shinyServer(function(input, output, session) {
         current_search$name<-NULL
         
         current_search$uri <- create_uri(current_search$startDate, current_search$endDate, current_search$gender, 
-                                         current_search$age, current_search$rxn, current_search$soc, 
+                                         current_search$age,current_search$min_age,current_search$max_age,current_search$rxn, current_search$soc, 
                                          current_search$drug_inv, current_search$name, current_search$seriousness_type, 
                                          current_search$name_type,current_search$search_type)
         
@@ -154,7 +158,8 @@ shinyServer(function(input, output, session) {
                 "Seriousness:",
                 "Date Range:"),
       values = c(data$name_type %>% toupper(),
-                                    paste(data$age[1], 'to', data$age[2], 'including', ifelse(data$filter_estimates_age, 'estimates', '')),
+                                    paste(data$age[1],ifelse(current_search$min_age,'(excluding)','(including)'), 'to', data$age[2],
+                                          ifelse(current_search$max_age,'(excluding)','(including)')),
                                     data$gender,
                                     paste0(data$name, collapse = ", "),
                                     paste0(data$rxn, collapse = ", "),
@@ -207,11 +212,10 @@ shinyServer(function(input, output, session) {
     
   })
   
-  output$mychart <- renderLineChart({
-
-
+  
+  timeplot<-reactive({
     two_years <- 730
-
+    
     if ((current_search$endDate - current_search$startDate) >= two_years) {
       time_period <- "year"
       time_function <- function(x) {years(x)}
@@ -223,7 +227,7 @@ shinyServer(function(input, output, session) {
     dateSequence_start <- get_date_sequence_start(current_search$startDate, current_search$endDate, time_period)
     dateSequence_end <- get_date_sequence_end(current_search$startDate, current_search$endDate, time_period)
     
-    data <- get_timechart_data(time_period, dateSequence_start,dateSequence_end, current_search$gender, current_search$age, current_search$rxn,
+    data <- get_timechart_data(time_period, dateSequence_start,dateSequence_end, current_search$gender, current_search$age,current_search$min_age,current_search$max_age, current_search$rxn,
                                current_search$soc, current_search$drug_inv, current_search$name, current_search$seriousness_type, current_search$name_type,current_search$search_type)
     
     
@@ -234,7 +238,7 @@ shinyServer(function(input, output, session) {
     
     
     rownames(df) <- c()
-
+    
     dateSequence <- dateSequence_start[1:(length(dateSequence_start) - 1)] 
     if(time_period == 'year'){
       dateSequence <- format(as.Date(dateSequence), "%Y")
@@ -243,12 +247,27 @@ shinyServer(function(input, output, session) {
       dateSequence <- format(as.Date(dateSequence), "%Y-%m")
     }
     
-    df$time_p <- dateSequence
+    df$time_period <- dateSequence
     df <- df[,c(4,1,2,3)]
-    transform(df, time_p = toString(time_p))
-    print('help')
+    transform(df, time_period = toString(time_period))
+    
+    return(df)
+  })
+  
+  output$mychart <- renderLineChart({
+
+    df<-timeplot()
+    #print('help')
     df
 
+  })
+  
+  output$tb_main<-renderDataTable({
+    df<-timeplot()%>%
+        mutate(`Serious(Including Death)`=Death+`Serious(Excluding Death)`)%>%
+        select(time_period,input$column_time)
+    
+    DT::datatable(df)
   })
   
   
@@ -338,7 +357,7 @@ shinyServer(function(input, output, session) {
     other_medically_imp_cond <- other_medically_imp_cond[(other_medically_imp_cond$category =="true"),]
     other_medically_imp_cond[1,1] <- 'Other Medically Important Condition'
 
-    serious_reasons <-do.call(rbind,list(congenital_anomaly,death,life_threatening,hosp_required,disability,other_medically_imp_cond))
+    serious_reasons <-do.call(rbind,list(death,life_threatening,hosp_required,disability,congenital_anomaly,other_medically_imp_cond))
     serious_reasons[nrow(serious_reasons) + 1,] = list("Not Specified",nreports()-sum(serious_reasons$doc_count))
     serious_reasons$doc_count<-ifelse(serious_reasons$doc_count<0,0,serious_reasons$doc_count)
     
@@ -359,12 +378,12 @@ shinyServer(function(input, output, session) {
   sexplot_data <- reactive({
 
     sex_data <- counter(current_search$uri, 'patient_gender.keyword', api_key)
-    if(nrow(sex_data[sex_data$category=='Not specified',])!=0){
-    sex_data[sex_data$category=='Not specified','doc_count']<-nreports()-sum(sex_data$doc_count)+sex_data$doc_count[sex_data$category=='Not specified']
-    }else{
-    sex_data[nrow(sex_data) + 1,] = list("Not specified",nreports()-sum(sex_data$doc_count)) 
-    }
-    sex_data
+    # if(nrow(sex_data[sex_data$category=='Not specified',])!=0){
+    # sex_data[sex_data$category=='Not specified','doc_count']<-nreports()-sum(sex_data$doc_count)+sex_data$doc_count[sex_data$category=='Not specified']
+    # }else{
+    sex_data[nrow(sex_data) + 1,] = list("Not available",nreports()-sum(sex_data$doc_count)) 
+    
+    return(sex_data)
   })
   
   output$sexchart <- renderGvis({
@@ -771,7 +790,7 @@ shinyServer(function(input, output, session) {
     }
   )
   
- 
+  
   
   # output$column_select_drug<-renderUI({
   #   selectizeInput("column_select_drug",
