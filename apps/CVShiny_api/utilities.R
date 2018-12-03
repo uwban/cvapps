@@ -2,20 +2,18 @@ library(lubridate)
 
 #Params: term_list - list of strings
 #Return: or - a single string of all in term_list seperated by +OR+
-# or_together <- function(term_list) {
-#   
-#   term_list<-paste0('\"',term_list,'\"')
-#   or<-''
-#   for (i in 1:(length(term_list) - 1)) {
-#     or <- paste0(or,term_list[i],'+OR+')
-#   }
-#   or <- paste0(or, term_list[length(term_list)])
-#   
-#   or<-sub('^.','',or)
-#   or<-sub('.$','',or)
-#   
-#   return(or)
-# }
+
+or_elastic <- function(term_list) {
+  or <- "("
+  term_list<-paste0('\\\"',term_list,'\\\"')
+  
+  for (i in 1:(length(term_list) - 1)) {
+    or <- paste0(or, term_list[i], ' OR ')
+  }
+  or <- paste0(or, term_list[length(term_list)], ')')
+  
+  return(or)
+}
 
 or_together <- function(term_list) {
   or <- "("
@@ -108,7 +106,7 @@ counter <- function(uri, count_term, key=''){
 #defaults are added so that function is reusible for counting (piecharts)
 #Params:
 #Return:
-create_uri <- function(startDate, endDate, gender='All', age=c(0, 125),min_inclu=FALSE,max_inclu=FALSE, rxn=NULL, soc=NULL, drug_inv='Any', drugname=NULL, seriousness=NULL, search_type='',exact='exact', ...) {
+create_uri <- function(startDate, endDate, gender='All', age=c(0, 125),min_inclu=FALSE,max_inclu=FALSE, rxn=NULL, soc=NULL, drug_inv='Any', drugname=NULL, seriousness=NULL, search_type='', ...) {
 
   search_uri <- 'https://node.hres.ca/drug/event?search='
   
@@ -193,39 +191,7 @@ create_uri <- function(startDate, endDate, gender='All', age=c(0, 125),min_inclu
   }
 
   
-if(!is.null(drugname) & exact=='exact'){
-    
-  if(drug_inv == 'Concomitant'){
-    
-      if(search_type== 'brand'){
-        search_uri <- paste0(search_uri, '+AND+report_drugname_concomitant.keyword:', remove_spaces(drugname))
-      }else{
-        search_uri <- paste0(search_uri, '+AND+report_ingredient_concomitant.keyword:', remove_spaces(drugname))
-      }
-  }
-    
-    
-  if(drug_inv=='Suspect'){
-    if(search_type=='brand'){
-      search_uri <- paste0(search_uri, '+AND+report_drugname_suspect.keyword:', remove_spaces(drugname))
-    }else{
-      search_uri <- paste0(search_uri, '+AND+report_ingredient_suspect.keyword:', remove_spaces(drugname))
-    }
-  }
-    
-  
-  if(drug_inv=='Any'){
-    if(search_type=='brand'){
-      search_uri <- paste0(search_uri, '+AND+(report_drugname_suspect.keyword:', remove_spaces(drugname),'+OR+report_drugname_concomitant.keyword:',
-                           remove_spaces(drugname),')')
-    }else{
-      search_uri <- paste0(search_uri, '+AND+(report_ingredient_suspect.keyword:', remove_spaces(drugname),'+OR+report_ingredient_concomitant.keyword:',
-                           remove_spaces(drugname),')')
-    }
-  }
-  
-  
-}else if(!is.null(drugname) & exact!='exact'){
+if(!is.null(drugname)){
     
   if(drug_inv == 'Concomitant'){
     
@@ -260,15 +226,6 @@ if(!is.null(drugname) & exact=='exact'){
     
     
     
-    
-    
-    
-
-  # else if ( !is.null(drugname)){
-  #   search_uri <- paste0('+AND+report_drug.drugname:', remove_spaces(drugname))
-  # 
-  # }
-  #THIS MIGHT BE  PROBLEM
 
   if(!is.null(seriousness)){
     
@@ -287,13 +244,13 @@ if(!is.null(drugname) & exact=='exact'){
 #gets all time chart dat, splits by year and seriousness
 #Params: current_search params - could be refactored to take a list
 #Return: 
-get_timechart_data <- function(time_period,date_start,date_end, gender, age,min_age,max_age, rxn, soc, drug_inv, drugname, seriousness, name_type,exact, ...){
+get_timechart_data <- function(time_period,date_start,date_end, gender, age,min_age,max_age, rxn, soc, drug_inv, drugname, seriousness, name_type, ...){
   result <- list()
   
   
   for (i in 1:(length(date_start)- 1)){
 
-        search_uri<- create_uri(date_start[i], date_end[i+1], gender, age,min_age,max_age, rxn, soc, drug_inv, drugname, seriousness, name_type,exact)
+        search_uri<- create_uri(date_start[i], date_end[i+1], gender, age,min_age,max_age, rxn, soc, drug_inv, drugname, seriousness, name_type)
         
     search_uri <- add_term(search_uri)
     result[[i]] <- search_uri
@@ -345,13 +302,8 @@ get_date_sequence_end <- function(startDate, endDate, time_period) {
 #Return:
 parse_response <- function(uri){
   
-  uri<-gsub('.*(?=datintreceived)','',uri,perl=T)
-  uri<-gsub('\\+',' ',uri)
-  
-  query<-paste0('{"query":{"query_string":{"query":"',uri,'"}}}')
-  r <-Search(index='drug_event',body=query,raw=T,size=10000)%>%fromJSON()
-  r<-r$hits$hits
-  
-  return(r)
+  uri<-paste0(uri,'&limit=1000')
+  response <- fromJSON(content(GET(uri), as='text'))$result
+  return(response)
 }
 
