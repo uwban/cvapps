@@ -1,9 +1,4 @@
-# NANCY: The remaining changes that need to be made: 3 graphs and the download section. 
-#An array_list called reactions_soc,  similar to reactions_pt, needs to be created in elasticsearch.
-#all of the functions that interact with the api are within utilities.R
-#I have already written the code that uses it.
-#finally, you might encounter a problem with escaping characters, lucene query strings don't seem to like a long list of these (they are documented in the function remove_spaces within utilities.R)
-#Thank you and good luck with the rest of your time here! - James
+
 library(dbplyr)
 library(Hmisc)
 library(magrittr)
@@ -20,6 +15,7 @@ library(googleVis)
 library(shiny)
 library(shinydashboard)
 library(shinyBS)
+library(shinyWidgets)
 library(DT)
 library(dplyr)
 library(tidyr)
@@ -55,10 +51,10 @@ concomitants <- counter(uri, 'report_drugname_concomitant.keyword&limit=1000000'
 suspects <- counter(uri, 'report_drugname_suspect.keyword&limit=100000', api_key)
 topbrands <- rbind(concomitants, suspects)[,1] %>% unique() %>% sort()
 
-#autolist for ingredients
-concomitants <- counter(uri, 'report_ingredient_concomitant.keyword&limit=1000000', api_key)
-suspects <- counter(uri, 'report_ingredient_suspect.keyword&limit=100000', api_key)
-topings_cv <- rbind(concomitants, suspects)[,1] %>% unique() %>% sort()
+# #autolist for ingredients
+# concomitants <- counter(uri, 'report_ingredient_concomitant.keyword&limit=1000000', api_key)
+# suspects <- counter(uri, 'report_ingredient_suspect.keyword&limit=100000', api_key)
+# topings_cv <- rbind(concomitants, suspects)[,1] %>% unique() %>% sort()
 
 #auto lists for both soc and pt (right now there is no soc in elastic - Dan needs to add before soc_choices works)
 soc_choices <- counter(uri, 'reaction_soc.keyword&limit=10000', api_key)[,1]%>%sort()

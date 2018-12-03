@@ -41,28 +41,34 @@ dashboardPage(
       menuItem("About", tabName = "aboutinfo", icon = icon("info"), selected = TRUE),
       menuItem("Download", tabName = "download_tab", icon = icon("download"))
     ),
-    conditionalPanel(
-      condition = "input.name_type == 'brand'",
-      # cvshiny_selectinput_UI('search_brand', 'Brand Name (Canadian Trade Name)')),
-      selectizeInput("search_brand",
-                     "Brand Name (Canadian Trade Name)",
-                     c("Start typing to search..." = ""),
-                     multiple = TRUE)),
-    conditionalPanel(
-      condition = "input.name_type == 'ingredient'",
-      selectizeInput("search_ing", 
-                     "Active Ingredient",
-                     c("Start typing to search..." = ""),
-                     multiple = TRUE)),
-    
-   # div(style="display: inline-block; width: 52%;",
-        radioButtons("search_type", "Search type:",
-                     c("Exact" = "exact","Contains" = "contains"),inline=TRUE),
     
     div(style="display: inline-block; width: 60%;",
         radioButtons("name_type", "Drug name type:",
                      c("Brand Name" = "brand",
                        "Active Ingredient" = "ingredient"))),
+    
+    textInput('search_drug','Type in a brand or ingredient to start:'),
+    conditionalPanel(
+      condition = "input.name_type == 'brand'",
+      # cvshiny_selectinput_UI('search_brand', 'Brand Name (Canadian Trade Name)')),
+      pickerInput("search_brand",
+                     "Select one or multiple Brand Names (Canadian Trade Name)",
+                     c("Start typing to search..." = ""),
+                     options=list(`actions-box`=TRUE,size=5),
+                     multiple = TRUE)),
+    conditionalPanel(
+      condition = "input.name_type == 'ingredient'",
+      pickerInput("search_ing", 
+                     "Select one or multiple Active Ingredients",
+                     c("Start typing to search..." = ""),
+                     options=list(`actions-box`=TRUE,size=5),
+                     multiple = TRUE)),
+    
+  
+        # radioButtons("search_type", "Search type:",
+        #              c("Exact" = "exact","Contains" = "contains"),inline=TRUE),
+    
+   
     div(style="display: inline-block; vertical-align:top; width: 52%",
         radioButtons("drug_inv", "Drug Involvement:",
                      c("Suspect",
@@ -273,7 +279,7 @@ dashboardPage(
                                    "Select Columns",
                                    choices=c('Select columns to download'),
                                    multiple=T),
-                    tags$b('Note: Export limit of 10,000. If your search result exceeds 10,000, only the first 10,000 reports will be downloaded')
+                    tags$b('Note: Export limit of 1,000. If your search result exceeds 1,000, only the first 1,000 reports will be downloaded')
                     # conditionalPanel(
                     #   "input.search_dataset_type == 'Report Data'",
                     #   uiOutput('column_select_data')),

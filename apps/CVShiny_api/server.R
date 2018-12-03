@@ -13,10 +13,45 @@ shinyServer(function(input, output, session) {
   
   
   #Autocomplete suggestions are generated
-  updateSelectizeInput(session, 'search_brand', choices = topbrands, server = TRUE)
-  updateSelectizeInput(session, 'search_ing', choices = topings_cv, server = TRUE)
+  # updateSelectizeInput(session, 'search_brand', choices = topbrands, server = TRUE)
+  # updateSelectizeInput(session, 'search_ing', choices = topings_cv, server = TRUE)
   updateSelectizeInput(session, 'search_rxn', choices = pt_choices, server = TRUE)
   updateSelectizeInput(session, 'search_soc', choices = soc_choices, server = TRUE)
+  
+  observe({
+    search_text<-input$search_drug
+    text_query<-paste0(search_text,'*')
+  
+  if(input$name_type=='ingredient'){
+    query<-paste0('{
+  "query": {
+    "query_string": {
+      "query":"',text_query,'"
+    }
+  }
+}')
+    
+  list<-Search(index='cv_primary_name',body=query,raw=T,size=500)%>%fromJSON()
+  list<-list$hits$hits$`_source`
+  list<-c(list$primary_name,unlist(list$synonyms))%>%unique()
+  list<-list[!is.na(list)]
+  list<-grep(input$search_drug,list,value=T,ignore.case = T)
+  
+  updatePickerInput(session, 'search_ing', choices = list)
+  
+  }else{
+   list<-grep(input$search_drug,topbrands,value=T,ignore.case = T)
+   list<-list%>%unique()
+   list<-list[!is.na(list)]
+  
+   updatePickerInput(session, 'search_brand', choices = list)
+  }
+  
+    
+})
+  
+  
+#build cycle for select all option in search_ing and search_brand 
   
   
   
@@ -34,11 +69,31 @@ shinyServer(function(input, output, session) {
     withProgress(message = 'Calculation in progress', value = 0, {
       
       if (input$name_type == "brand") {
-        name <- input$search_brand
+        primary_name <- input$search_brand
+        
       } else if (input$name_type == "ingredient") {
         name <- input$search_ing
-      } else {
-        name <- input$search_ing2
+        
+        #insert elastic conversion:
+        if(length(name)>1){
+          primary_name<-or_elastic(name)
+        }else{
+          primary_name<-paste0('\\\"',name,'\\\"')
+        }
+          
+          
+        query<-paste0('{
+        "query": {
+        "query_string": {
+        "fields":["primary_name.keyword","synonyms.keyword"],
+        "query":"',primary_name,'"
+        }
+       }
+     }')
+  
+  primary_name<-Search(index='cv_primary_name',body=query,raw=T)%>%fromJSON()
+  primary_name<-primary_name$hits$hits$`_source`$primary_name
+        
       }
       
       startDate <- input$daterange[1] %>% ymd(tz = 'EST')
@@ -53,7 +108,7 @@ shinyServer(function(input, output, session) {
       
       current_search$name_type <- input$name_type
       
-      current_search$name <- name
+      current_search$name <- primary_name
       
       current_search$drug_inv <- input$drug_inv
       
@@ -78,14 +133,12 @@ shinyServer(function(input, output, session) {
       
       current_search$endDate <- endDate
       
-      current_search$search_type<-input$search_type
-      
       #current_search$age_estimate <- input$filter_estimates_age
       
       current_search$uri <- create_uri(current_search$startDate, current_search$endDate, current_search$gender, 
                                        current_search$age,current_search$min_age,current_search$max_age,current_search$rxn, current_search$soc, 
                                        current_search$drug_inv, current_search$name, current_search$seriousness_type, 
-                                       current_search$name_type,current_search$search_type)
+                                       current_search$name_type)
       incProgress(4/9, detail = 'Assembling query string')
       # api_key <- api_key
       
@@ -104,7 +157,7 @@ shinyServer(function(input, output, session) {
         current_search$uri <- create_uri(current_search$startDate, current_search$endDate, current_search$gender, 
                                          current_search$age,current_search$min_age,current_search$max_age,current_search$rxn, current_search$soc, 
                                          current_search$drug_inv, current_search$name, current_search$seriousness_type, 
-                                         current_search$name_type,current_search$search_type)
+                                         current_search$name_type)
         
       }
 
@@ -228,7 +281,7 @@ shinyServer(function(input, output, session) {
     dateSequence_end <- get_date_sequence_end(current_search$startDate, current_search$endDate, time_period)
     
     data <- get_timechart_data(time_period, dateSequence_start,dateSequence_end, current_search$gender, current_search$age,current_search$min_age,current_search$max_age, current_search$rxn,
-                               current_search$soc, current_search$drug_inv, current_search$name, current_search$seriousness_type, current_search$name_type,current_search$search_type)
+                               current_search$soc, current_search$drug_inv, current_search$name, current_search$seriousness_type, current_search$name_type)
     
     
     
@@ -664,10 +717,6 @@ shinyServer(function(input, output, session) {
   ### outcome plot ###
   outcomeplot_data <- reactive({
 
-    # search_uri <- create_uri(current_search$startDate, current_search$endDate, gender=current_search$gender, 
-    #                          age=current_search$age, rxn=current_search$rxn, soc=current_search$soc, drug_inv=current_search$drug_inv, drugname=current_search$name, 
-    #                          seriousness=current_search$seriousness_type, search_type=current_search$name_type)
-    
     search_uri<-current_search$uri
     outcome_count <- counter(search_uri, 'outcome.keyword', api_key)
     return(outcome_count)
